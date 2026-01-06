@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Admin</title>
+
+    <!-- WAJIB: nama file harus SAMA PERSIS -->
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+    <div class="logo">Dashboard Admin</div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+</header>
+
+<div class="wrapper">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-toggle" onclick="toggleSidebar()">❮</div>
+
+        <ul class="sidebar-menu">
+            <li class="active" onclick="showSection('home', this)">
+                <span class="icon">🏠</span>
+                <span class="text">Home</span>
+            </li>
+
+            <li onclick="showSection('faq', this)">
+                <span class="icon">❓</span>
+                <span class="text">Edit FAQ</span>
+            </li>
+
+            <li onclick="showSection('intents', this)">
+                <span class="icon">🤖</span>
+                <span class="text">Edit intents.json</span>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="content">
+
+        <!-- HOME -->
+        <section id="home" class="section active">
+            <h1 style="text-align:center;">
+                Selamat datang di halaman admin
+            </h1>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq" class="section">
+            <h2>Kelola Pertanyaan Umum</h2>
+
+            <div id="faqList"></div>
+
+            <hr>
+
+            <input type="text" id="question" placeholder="Pertanyaan">
+            <br><br>
+            <textarea id="answer" placeholder="Jawaban"></textarea>
+            <br><br>
+            <button onclick="saveFaq()">Simpan FAQ</button>
+        </section>
+
+        <!-- INTENTS -->
+        <section id="intents" class="section">
+            <h2>Edit intents.json</h2>
+
+            <textarea id="intentsEditor"></textarea>
+            <br><br>
+            <button onclick="saveIntents()">Simpan & Latih Ulang AI</button>
+        </section>
+
+    </main>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

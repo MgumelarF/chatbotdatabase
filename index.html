@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>FAQ Kelurahan</title>
+
+        <!-- Hubungkan CSS -->
+        <link rel="stylesheet" href="style.css">
+    </head>
+
+<body>
+    <header>
+        <span class="logo">Kelurahan Cipinang Melayu</span>
+
+        <!-- Hamburger Button -->
+        <div class="hamburger" id="hamburgerBtn">
+        ☰
+        </div>
+
+        <!-- Dropdown Menu -->
+        <nav class="nav-menu" id="menu">
+            <a href="#">Beranda</a>
+            <a href="#">Profil</a>
+            <a href="#">Layanan</a>
+            <a href="#">Kontak</a>
+            <a href="login.html">login</a>
+        </nav>
+</header>
+
+<h2>FAQ</h2>
+<div class="faq-container" id="faqContainer"></div>
+
+<!-- Tombol chat -->
+    <div class="chat-btn" id="chatButton"> 💬 </div>
+
+    <!-- Popup chat -->
+    <div class="chat-popup" id="chatBox">
+        <div class="chat-header">
+            Chat Kelurahan
+            <span id="closeChat" class="close-btn">✖</span>
+        </div>
+
+        <div class="chat-body" id="chatContent"></div>
+
+        <div class="chat-input">
+            <input type="text" id="userMessage" placeholder="Ketik pesan...">
+            <button id="sendBtn">Kirim</button>
+        </div>
+    </div>
+
+<!-- Hubungkan JavaScript -->
+<script src="script.js"></script>
+</body>
+</html>

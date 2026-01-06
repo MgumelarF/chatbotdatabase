@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+<header>
+    <span class="logo">Kelurahan Cipinang Melayu</span>
+
+    <div class="hamburger" id="hamburgerBtn">☰</div>
+
+    <nav class="nav-menu" id="menu">
+        <a href="/">Beranda</a>
+        <a href="/login">Login</a>
+    </nav>
+</header>
+
+<div class="login-container">
+    <div class="login-box">
+        <h2>Login Admin</h2>
+
+        <!-- PESAN ERROR -->
+        <div class="error" id="errorMsg" style="display:none;">
+            Username atau password salah
+        </div>
+
+        <label for="username">Username</label>
+        <input
+            type="text"
+            id="username"
+            placeholder="Masukkan username"
+            autocomplete="off"
+        >
+
+        <label for="password">Password</label>
+        <input
+            type="password"
+            id="password"
+            placeholder="Masukkan password"
+        >
+
+        <!-- PENTING: type=button -->
+        <button type="button" id="loginBtn">Login</button>
+    </div>
+</div>
+
+<!-- JS LOGIN -->
+<script src="login.js"></script>
+
+</body>
+</html>

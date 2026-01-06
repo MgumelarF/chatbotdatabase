@@ -1,0 +1,135 @@
+{
+  "intents": [
+    {
+      "tag": "salam",
+      "patterns": [
+        "hai", "halo", "hello", "hei", "hey",
+        "selamat pagi", "selamat siang", "selamat sore", "selamat malam",
+        "pagi", "siang", "sore", "malam",
+        "assalamualaikum", "shalom", "salom", "namo buddhaya",
+        "halo bot", "hai bot", "permisi", "ada orang?"
+      ],
+      "responses": [
+        "Halo! Ada yang bisa saya bantu?",
+        "Hai, selamat datang di layanan Kelurahan Cipinang Melayu 😊",
+        "Halo! Silakan sampaikan keperluan Anda."
+      ]
+    },
+
+    {
+      "tag": "selamat_tinggal",
+      "patterns": [
+        "dadah", "sampai jumpa", "selamat tinggal",
+        "sampai nanti", "sampai ketemu lagi", "bye"
+      ],
+      "responses": [
+        "Sampai jumpa! Semoga harimu menyenangkan 😊",
+        "Terima kasih telah menghubungi Kelurahan Cipinang Melayu.",
+        "Sampai ketemu lagi!"
+      ]
+    },
+
+    {
+      "tag": "terima_kasih",
+      "patterns": [
+        "terima kasih", "makasih", "thanks",
+        "terima kasih banyak", "mantap", "keren"
+      ],
+      "responses": [
+        "Sama-sama 😊",
+        "Dengan senang hati!",
+        "Senang bisa membantu."
+      ]
+    },
+
+    {
+      "tag": "profil_kelurahan",
+      "patterns": [
+        "cipinang melayu",
+        "kelurahan cipinang melayu",
+        "tentang cipinang melayu",
+        "profil kelurahan cipinang melayu"
+      ],
+      "responses": [
+        "Kelurahan Cipinang Melayu merupakan salah satu kelurahan yang berada di wilayah Jakarta Timur."
+      ]
+    },
+
+    {
+      "tag": "asal_nama_cipinang_melayu",
+      "patterns": [
+        "asal kata cipinang melayu",
+        "asal usul cipinang melayu",
+        "asal nama cipinang melayu",
+        "dari mana nama cipinang melayu"
+      ],
+      "responses": [
+        "Asal nama Cipinang berasal dari kata 'Ci' dalam bahasa Sunda yang berarti air atau sungai dan 'Pinang' dari pohon pinang yang banyak tumbuh di sekitar sungai. Kata 'Melayu' merujuk pada penduduk yang mendiami wilayah tersebut."
+      ]
+    },
+
+    {
+      "tag": "syarat_kk_baru",
+      "patterns": [
+        "syarat pembuatan kartu keluarga baru",
+        "buat kk baru",
+        "pembuatan kk baru",
+        "kartu keluarga baru",
+        "dokumen membuat kk baru"
+      ],
+      "responses": [
+        "Persyaratan penerbitan Kartu Keluarga (KK) baru:\n1. Mengisi formulir permohonan penerbitan KK.\n2. Mengisi Formulir F1.01 bagi penduduk yang belum teregistrasi atau belum memiliki NIK.\n3. Fotokopi buku nikah atau akta nikah.\n4. Surat keterangan pindah datang."
+      ]
+    },
+
+    {
+      "tag": "syarat_kk_perubahan_data",
+      "patterns": [
+        "perubahan data kk",
+        "ubah data kartu keluarga",
+        "kk perubahan data",
+        "pengurusan kk karena perubahan data"
+      ],
+      "responses": [
+        "Persyaratan cetak ulang Kartu Keluarga (KK) karena perubahan data:\n1. Mengisi formulir permohonan penerbitan KK.\n2. Kartu Keluarga (KK) asli.\n3. Surat keterangan pendukung perubahan data.\n4. Formulir F1.06.\n5. Fotokopi dokumen pendukung seperti akta kelahiran, ijazah, atau akta nikah."
+      ]
+    },
+
+    {
+      "tag": "syarat_kk_hilang_rusak",
+      "patterns": [
+        "kk hilang",
+        "kk rusak",
+        "kartu keluarga hilang",
+        "kartu keluarga rusak"
+      ],
+      "responses": [
+        "Persyaratan cetak ulang Kartu Keluarga (KK) karena hilang atau rusak:\n1. Surat kehilangan dari kepolisian (jika hilang).\n2. Mengisi formulir penerbitan KK.\n3. Membawa KK yang rusak (jika rusak)."
+      ]
+    },
+
+    {
+      "tag": "syarat_akta_kelahiran",
+      "patterns": [
+        "akta kelahiran",
+        "akte kelahiran",
+        "pembuatan akta kelahiran",
+        "buat akta kelahiran",
+        "syarat akta kelahiran"
+      ],
+      "responses": [
+        "Persyaratan pembuatan Akta Kelahiran:\n1. Surat keterangan kelahiran dari rumah sakit, bidan, atau kelurahan.\n2. Kartu Keluarga orang tua.\n3. Fotokopi KTP orang tua.\n4. Fotokopi buku nikah atau surat pernyataan tanggung jawab mutlak (SPTJM).\n5. Fotokopi KTP dua orang saksi."
+      ]
+    },
+
+    {
+      "tag": "fallback",
+      "patterns": [],
+      "responses": [
+        "Maaf, saya belum memahami pertanyaan tersebut 😅",
+        "Bisa dijelaskan sedikit lebih detail?",
+        "Silakan ulangi pertanyaan Anda dengan kalimat lain."
+      ]
+    }
+  ]
+}
