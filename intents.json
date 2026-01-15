@@ -64,7 +64,7 @@
         "dari mana nama cipinang melayu"
       ],
       "responses": [
-        "Asal nama Cipinang berasal dari kata 'Ci' dalam bahasa Sunda yang berarti air atau sungai dan 'Pinang' dari pohon pinang yang banyak tumbuh di sekitar sungai. Kata 'Melayu' merujuk pada penduduk yang mendiami wilayah tersebut."
+        "Nama Cipinang berasal dari kata 'Ci' (air/sungai) dan 'Pinang' dari pohon pinang yang dahulu banyak tumbuh di sekitar sungai. Kata 'Melayu' merujuk pada penduduk yang mendiami wilayah tersebut."
       ]
     },
 
@@ -74,11 +74,10 @@
         "syarat pembuatan kartu keluarga baru",
         "buat kk baru",
         "pembuatan kk baru",
-        "kartu keluarga baru",
-        "dokumen membuat kk baru"
+        "kartu keluarga baru"
       ],
       "responses": [
-        "Persyaratan penerbitan Kartu Keluarga (KK) baru:\n1. Mengisi formulir permohonan penerbitan KK.\n2. Mengisi Formulir F1.01 bagi penduduk yang belum teregistrasi atau belum memiliki NIK.\n3. Fotokopi buku nikah atau akta nikah.\n4. Surat keterangan pindah datang."
+        "Persyaratan penerbitan KK baru:\n1. Formulir permohonan KK.\n2. Formulir F1.01.\n3. Fotokopi buku/akta nikah.\n4. Surat keterangan pindah datang (jika ada)."
       ]
     },
 
@@ -87,12 +86,10 @@
       "patterns": [
         "perubahan data kk",
         "ubah data kartu keluarga",
-        "kk perubahan data",
-        "pengurusan kk karena perubahan data",
-        "data kk berubah"
+        "kk perubahan data"
       ],
       "responses": [
-        "Persyaratan cetak ulang Kartu Keluarga (KK) karena perubahan data:\n1. Mengisi formulir permohonan penerbitan KK.\n2. Kartu Keluarga (KK) asli.\n3. Surat keterangan pendukung perubahan data.\n4. Formulir F1.06.\n5. Fotokopi dokumen pendukung seperti akta kelahiran, ijazah, atau akta nikah."
+        "Persyaratan perubahan data KK:\n1. Formulir permohonan.\n2. KK asli.\n3. Dokumen pendukung perubahan data.\n4. Formulir F1.06."
       ]
     },
 
@@ -105,7 +102,7 @@
         "kartu keluarga rusak"
       ],
       "responses": [
-        "Persyaratan cetak ulang Kartu Keluarga (KK) karena hilang atau rusak:\n1. Surat kehilangan dari kepolisian (jika hilang).\n2. Mengisi formulir penerbitan KK.\n3. Membawa KK yang rusak (jika rusak)."
+        "Persyaratan KK hilang/rusak:\n1. Surat kehilangan dari kepolisian (jika hilang).\n2. Formulir permohonan.\n3. KK rusak (jika rusak)."
       ]
     },
 
@@ -114,12 +111,119 @@
       "patterns": [
         "akta kelahiran",
         "akte kelahiran",
-        "pembuatan akta kelahiran",
         "buat akta kelahiran",
         "syarat akta kelahiran"
       ],
       "responses": [
-        "Persyaratan pembuatan Akta Kelahiran:\n1. Surat keterangan kelahiran dari rumah sakit, bidan, atau kelurahan.\n2. Kartu Keluarga orang tua.\n3. Fotokopi KTP orang tua.\n4. Fotokopi buku nikah atau surat pernyataan tanggung jawab mutlak (SPTJM).\n5. Fotokopi KTP dua orang saksi."
+        "Persyaratan Akta Kelahiran:\n1. Surat kelahiran.\n2. KK orang tua.\n3. KTP orang tua.\n4. Buku nikah/SPTJM.\n5. KTP dua orang saksi."
+      ]
+    },
+
+    {
+      "tag": "jam_operasional",
+      "patterns": [
+        "jam buka kelurahan",
+        "jam pelayanan kelurahan",
+        "kelurahan buka jam berapa"
+      ],
+      "responses": [
+        "Pelayanan Kelurahan Cipinang Melayu buka Senin–Jumat pukul 08.00–16.00 WIB."
+      ]
+    },
+
+    {
+      "tag": "lokasi_kelurahan",
+      "patterns": [
+        "alamat kelurahan",
+        "kantor kelurahan dimana",
+        "lokasi kelurahan cipinang melayu"
+      ],
+      "responses": [
+        "Kantor Kelurahan Cipinang Melayu berada di Kecamatan Makasar, Jakarta Timur."
+      ]
+    },
+
+    {
+      "tag": "surat_administrasi_umum",
+      "patterns": [
+        "surat administrasi",
+        "jenis surat di kelurahan",
+        "layanan surat kelurahan"
+      ],
+      "responses": [
+        "Kelurahan melayani surat domisili, usaha, tidak mampu, dan surat pengantar administrasi lainnya."
+      ]
+    },
+
+    {
+      "tag": "biaya_pelayanan",
+      "patterns": [
+        "biaya pengurusan surat",
+        "apakah gratis",
+        "kena biaya"
+      ],
+      "responses": [
+        "Seluruh pelayanan administrasi di Kelurahan Cipinang Melayu tidak dipungut biaya."
+      ]
+    },
+
+    {
+      "tag": "perpajakan_umum",
+      "patterns": [
+        "urusan pajak",
+        "pajak kelurahan",
+        "pbb kelurahan"
+      ],
+      "responses": [
+        "Kelurahan membantu informasi dan surat pengantar pajak, namun tidak melayani pembayaran langsung."
+      ]
+    },
+
+    {
+      "tag": "syarat_penerimaan_bansos",
+      "patterns": [
+        "syarat bansos",
+        "syarat menerima bansos",
+        "apa syarat bansos"
+      ],
+      "responses": [
+        "Syarat penerimaan bansos antara lain membawa surat keterangan dari RT setempat."
+      ]
+    },
+
+    {
+      "tag": "bantuan_sosial",
+      "patterns": [
+        "bantuan sosial",
+        "bansos",
+        "daftar bansos"
+      ],
+      "responses": [
+        "Kelurahan membantu pendataan dan verifikasi bantuan sosial sesuai program pemerintah."
+      ]
+    },
+
+    {
+      "tag": "pengaduan_warga",
+      "patterns": [
+        "pengaduan warga",
+        "lapor keluhan",
+        "aduan masyarakat"
+      ],
+      "responses": [
+        "Pengaduan warga dapat disampaikan langsung ke kantor kelurahan pada jam kerja."
+      ]
+    },
+
+    {
+      "tag": "dokumen_asli",
+      "patterns": [
+        "bawa dokumen asli",
+        "perlu dokumen asli",
+        "harus bawa ktp asli"
+      ],
+      "responses": [
+        "Warga wajib membawa dokumen asli untuk keperluan verifikasi."
       ]
     },
 
@@ -128,130 +232,8 @@
       "patterns": [],
       "responses": [
         "Maaf, saya belum memahami pertanyaan tersebut 😅",
-        "Bisa dijelaskan sedikit lebih detail?",
-        "Silakan ulangi pertanyaan Anda dengan kalimat lain."
+        "Bisa dijelaskan sedikit lebih detail?"
       ]
-    },
-
-    {
-     "tag": "jam_operasional",
-     "patterns": [
-       "jam buka kelurahan",
-       "kelurahan buka jam berapa",
-       "jam pelayanan kelurahan",
-       "jam kerja kelurahan",
-       "pelayanan sampai jam berapa"
-     ],
-     "responses": [
-       "Pelayanan Kelurahan Cipinang Melayu buka pada hari Senin–Jumat pukul 08.00–16.00 WIB."
-     ]
-   },
-
-   {
-     "tag": "lokasi_kelurahan",
-     "patterns": [
-       "alamat kelurahan",
-       "kantor kelurahan dimana",
-       "lokasi kelurahan cipinang melayu",
-       "di mana kantor kelurahan",
-       "alamat kantor kelurahan"
-     ],
-     "responses": [
-       "Kantor Kelurahan Cipinang Melayu berlokasi di wilayah Cipinang Melayu, Kecamatan Makasar, Jakarta Timur."
-     ]
-   },
-
-   {
-    "tag": "surat_administrasi_umum",
-    "patterns": [
-      "surat administrasi",
-      "surat admin",
-      "jenis surat di kelurahan",
-      "mengurus surat di kelurahan",
-      "layanan surat kelurahan"
-  ],
-  "responses": [
-    "Kelurahan melayani berbagai surat administrasi seperti surat keterangan domisili, usaha, tidak mampu, serta surat pengantar administrasi lainnya."
+    }
   ]
-},
-
-{
-  "tag": "biaya_pelayanan",
-  "patterns": [
-    "bayar tidak",
-    "biaya pengurusan surat",
-    "apakah gratis",
-    "kena biaya",
-    "berapa biaya layanan kelurahan"
-  ],
-  "responses": [
-    "Seluruh pelayanan administrasi di Kelurahan Cipinang Melayu tidak dipungut biaya."
-  ]
-},
-
-{
-  "tag": "perpajakan_umum",
-  "patterns": [
-    "urusan pajak",
-    "layanan pajak di kelurahan",
-    "pajak kelurahan",
-    "pbb kelurahan",
-    "bantuan pajak"
-  ],
-  "responses": [
-    "Kelurahan membantu administrasi perpajakan berupa informasi dan surat pengantar, namun tidak melayani pembayaran pajak secara langsung."
-  ]
-},
-
-{
-  "tag": "Syarat_penerimaan_bans0s",
-  "patterns": [
-    "apa syarat untuk menerima bansos"
-  ],
-  "responses": [
-    "membawa surat keterangan rt"
-  ]
-},
-
-{
-  "tag": "bantuan_sosial",
-  "patterns": [
-    "bantuan sosial",
-    "bansos",
-    "daftar bansos",
-    "penerima bantuan",
-    "bantuan pemerintah"
-  ],
-  "responses": [
-    "Kelurahan membantu pendataan dan verifikasi bantuan sosial sesuai program pemerintah yang berlaku."
-  ]
-},
-
-{
-  "tag": "pengaduan_warga",
-  "patterns": [
-    "lapor keluhan",
-    "pengaduan warga",
-    "komplain pelayanan",
-    "lapor masalah",
-    "aduan masyarakat"
-  ],
-  "responses": [
-    "Pengaduan dan aspirasi warga dapat disampaikan langsung ke kantor kelurahan pada jam kerja."
-  ]
-},
-
-{
-  "tag": "dokumen_asli",
-  "patterns": [
-    "bawa dokumen asli",
-    "perlu dokumen asli",
-    "harus bawa ktp asli",
-    "dokumen asli atau fotokopi"
-  ],
-  "responses": [
-    "Warga diwajibkan membawa dokumen asli untuk keperluan verifikasi saat mengurus pelayanan di kelurahan."
-     ]
-   }
- ]
 }
