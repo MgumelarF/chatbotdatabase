@@ -1,26 +1,30 @@
 [
   {
     "id": 1,
-    "name": "surat admin"
+    "name": "Surat Administrasi"
   },
   {
     "id": 2,
-    "name": "pelayanan"
+    "name": "Pelayanan"
   },
   {
     "id": 3,
-    "name": "perpajakan"
+    "name": "Perpajakan"
   },
   {
     "id": 4,
-    "name": "mamang"
+    "name": "Kependudukan"
   },
   {
     "id": 5,
-    "name": "malih"
+    "name": "Bantuan Sosial"
   },
   {
     "id": 6,
+    "name": "Pengaduan & Aspirasi"
+  },
+  {
+    "id": 7,
     "name": "lorem ipsum"
   }
 ]

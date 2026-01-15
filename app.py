@@ -14,13 +14,21 @@ import subprocess
 # =========================
 # IMPORT MODEL CHATBOT
 # =========================
-from modellain import predict_intent_semantic, get_response
+from modellain import chat as chatbot_engine
 
 # =========================
 # INIT APP
 # =========================
 app = Flask(__name__)
 app.secret_key = "admin-secret"
+
+# =========================
+# STATE CHATBOT (WAJIB)
+# =========================
+chat_state = {
+    "awaiting_confirmation": False,
+    "last_options": []
+}
 
 # CORS (AMAN UNTUK CHATBOT)
 CORS(app)
@@ -182,19 +190,21 @@ def update_intents():
 # =========================
 @app.route("/chat", methods=["POST"])
 def chat():
+    global chat_state
+
     data = request.get_json(force=True)
     if not data or "message" not in data:
         return jsonify({"error": "Message kosong"}), 400
 
     user_text = data["message"]
+
     try:
-        intent_tag, score = predict_intent_semantic(user_text, return_score=True)
-        response = get_response(intent_tag)
+        response, chat_state = chatbot_engine(user_text, chat_state)
+
         return jsonify({
-            "intent": intent_tag,
-            "confidence": round(float(score), 3),
             "response": response
         })
+
     except Exception as e:
         return jsonify({
             "error": "Chatbot error",
@@ -216,4 +226,4 @@ if __name__ == "__main__":
     for file_path in [CATEGORIES_FILE, FAQ_FILE]:
         if not os.path.exists(file_path):
             save_json(file_path, [])
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

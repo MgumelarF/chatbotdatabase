@@ -48,7 +48,8 @@ body {
 ========================= */
 .wrapper {
     display: flex;
-    min-height: calc(100vh - 50px);
+    height: calc(100vh - 50px); /* fix tinggi */
+    overflow: hidden; /* penting: cegah scroll global */
 }
 
 /* =========================
@@ -56,6 +57,7 @@ body {
 ========================= */
 .sidebar {
     width: 220px;
+    height: 100%;
     background: #2f3e66;
     color: white;
     position: relative;
@@ -114,6 +116,9 @@ body {
     flex: 1;
     padding: 30px;
     box-sizing: border-box;
+
+    height: 100%;       /* penuh setinggi wrapper */
+    overflow-y: auto;   /* inilah kunci scroll hanya di sini */
 }
 
 /* =========================

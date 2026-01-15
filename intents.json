@@ -131,6 +131,127 @@
         "Bisa dijelaskan sedikit lebih detail?",
         "Silakan ulangi pertanyaan Anda dengan kalimat lain."
       ]
-    }
+    },
+
+    {
+     "tag": "jam_operasional",
+     "patterns": [
+       "jam buka kelurahan",
+       "kelurahan buka jam berapa",
+       "jam pelayanan kelurahan",
+       "jam kerja kelurahan",
+       "pelayanan sampai jam berapa"
+     ],
+     "responses": [
+       "Pelayanan Kelurahan Cipinang Melayu buka pada hari Senin–Jumat pukul 08.00–16.00 WIB."
+     ]
+   },
+
+   {
+     "tag": "lokasi_kelurahan",
+     "patterns": [
+       "alamat kelurahan",
+       "kantor kelurahan dimana",
+       "lokasi kelurahan cipinang melayu",
+       "di mana kantor kelurahan",
+       "alamat kantor kelurahan"
+     ],
+     "responses": [
+       "Kantor Kelurahan Cipinang Melayu berlokasi di wilayah Cipinang Melayu, Kecamatan Makasar, Jakarta Timur."
+     ]
+   },
+
+   {
+    "tag": "surat_administrasi_umum",
+    "patterns": [
+      "surat administrasi",
+      "surat admin",
+      "jenis surat di kelurahan",
+      "mengurus surat di kelurahan",
+      "layanan surat kelurahan"
+  ],
+  "responses": [
+    "Kelurahan melayani berbagai surat administrasi seperti surat keterangan domisili, usaha, tidak mampu, serta surat pengantar administrasi lainnya."
   ]
+},
+
+{
+  "tag": "biaya_pelayanan",
+  "patterns": [
+    "bayar tidak",
+    "biaya pengurusan surat",
+    "apakah gratis",
+    "kena biaya",
+    "berapa biaya layanan kelurahan"
+  ],
+  "responses": [
+    "Seluruh pelayanan administrasi di Kelurahan Cipinang Melayu tidak dipungut biaya."
+  ]
+},
+
+{
+  "tag": "perpajakan_umum",
+  "patterns": [
+    "urusan pajak",
+    "layanan pajak di kelurahan",
+    "pajak kelurahan",
+    "pbb kelurahan",
+    "bantuan pajak"
+  ],
+  "responses": [
+    "Kelurahan membantu administrasi perpajakan berupa informasi dan surat pengantar, namun tidak melayani pembayaran pajak secara langsung."
+  ]
+},
+
+{
+  "tag": "Syarat_penerimaan_bans0s",
+  "patterns": [
+    "apa syarat untuk menerima bansos"
+  ],
+  "responses": [
+    "membawa surat keterangan rt"
+  ]
+},
+
+{
+  "tag": "bantuan_sosial",
+  "patterns": [
+    "bantuan sosial",
+    "bansos",
+    "daftar bansos",
+    "penerima bantuan",
+    "bantuan pemerintah"
+  ],
+  "responses": [
+    "Kelurahan membantu pendataan dan verifikasi bantuan sosial sesuai program pemerintah yang berlaku."
+  ]
+},
+
+{
+  "tag": "pengaduan_warga",
+  "patterns": [
+    "lapor keluhan",
+    "pengaduan warga",
+    "komplain pelayanan",
+    "lapor masalah",
+    "aduan masyarakat"
+  ],
+  "responses": [
+    "Pengaduan dan aspirasi warga dapat disampaikan langsung ke kantor kelurahan pada jam kerja."
+  ]
+},
+
+{
+  "tag": "dokumen_asli",
+  "patterns": [
+    "bawa dokumen asli",
+    "perlu dokumen asli",
+    "harus bawa ktp asli",
+    "dokumen asli atau fotokopi"
+  ],
+  "responses": [
+    "Warga diwajibkan membawa dokumen asli untuk keperluan verifikasi saat mengurus pelayanan di kelurahan."
+     ]
+   }
+ ]
 }

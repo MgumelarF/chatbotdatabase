@@ -75,7 +75,12 @@ header {
     color: white;
     padding: 15px;
     box-sizing: border-box;
+
+    /* INI YANG PENTING */
+    height: 100%;
+    overflow-y: auto;
 }
+
 
 .faq-sidebar h3 {
     margin-top: 0;
@@ -255,4 +260,92 @@ header {
     align-items: flex-start;
     gap: 6px;
     margin: 6px 0;
+}
+/* =========================
+   RESPONSIVE UNIVERSAL
+   Berlaku untuk semua device kecil
+========================= */
+
+/* Tablet dan ke bawah */
+@media (max-width: 768px) {
+
+    .container {
+        flex-direction: column;
+        height: auto;
+        min-height: calc(100vh - 60px);
+    }
+
+    .faq-sidebar {
+        width: 100vw;
+        max-height: 220px; /* adaptif, tidak dominan */
+        overflow-y: auto;
+        border-radius: 0 0 18px 18px;
+    }
+
+    .faq-main {
+        padding: 16px;
+    }
+
+    .faq-card {
+        font-size: 14px;
+    }
+
+    .chat-popup {
+        left: 12px;
+        right: 12px;
+        width: auto;
+        height: 65vh;
+    }
+}
+
+
+/* Mobile kecil */
+@media (max-width: 480px) {
+
+    header {
+        padding: 10px 14px;
+        font-size: 15px;
+    }
+
+    .logo {
+        font-size: 15px;
+    }
+
+    .faq-sidebar {
+        width: 100vw;
+        padding: 12px;
+        max-height: 180px;
+    }
+
+    .faq-sidebar h3 {
+        font-size: 14px;
+    }
+
+    .faq-sidebar ul li {
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+
+    .faq-main {
+        padding: 12px;
+    }
+
+    .faq-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .faq-card h3 {
+        font-size: 15px;
+    }
+
+    .faq-card p {
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    .chat-btn {
+        width: 52px;
+        height: 52px;
+    }
 }

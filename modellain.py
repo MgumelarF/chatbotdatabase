@@ -1,181 +1,207 @@
 # modellain.py
-# ChatBot Bahasa Indonesia — Semantic Matching (Sentence Transformers)
-# Fitur:
-# - Tidak menggunakan BoW/words.pkl/classes.pkl
-# - Paham typo & variasi kalimat (semantic similarity)
-# - Caching embeddings agar startup lebih cepat jika intents.json tidak berubah
-# - Mudah diintegrasikan ke API (fungsi predict_intent_semantic & get_response)
+# Chatbot Kelurahan - Semantic Matching + Dialog Management Ringan
+# Fokus: ringan, aman, dan tahan pertanyaan warga yang random
 
 import json
 import os
 import random
-import hashlib
 import pickle
+import hashlib
 import numpy as np
-import nltk
-from sklearn.metrics.pairwise import cosine_similarity
 
-# Sentence transformer
+from sklearn.metrics.pairwise import cosine_similarity
 from sentence_transformers import SentenceTransformer
 
-# Pastikan nltk tokenizer tersedia
-nltk.download('punkt', quiet=True)
-
-# ---------- Konfigurasi ----------
+# =========================
+# KONFIGURASI
+# =========================
 INTENTS_FILE = "intents.json"
-CACHE_FILE = "intent_data.pkl"
-HASH_FILE = "intents.hash"
-EMBED_MODEL_NAME = "paraphrase-MiniLM-L6-v2"  # ringan & cepat
-SIMILARITY_THRESHOLD = 0.45  # sesuaikan: 0.3-0.5 (lebih rendah = lebih toleran)
+CACHE_FILE = "intent_cache.pkl"
+HASH_FILE = "intent_hash.txt"
 
-# ---------- Util: file hash ----------
-def get_file_hash(filename: str) -> str:
+EMBED_MODEL = "paraphrase-MiniLM-L6-v2"
+SIMILARITY_THRESHOLD = 0.45
+TOP_K = 2
+
+# intent yang bukan layanan utama
+NON_LAYANAN = {
+    "salam",
+    "selamat_tinggal",
+    "terima_kasih"
+}
+
+# =========================
+# UTIL HASH FILE
+# =========================
+def file_hash(path):
     h = hashlib.md5()
-    with open(filename, "rb") as f:
-        while True:
-            chunk = f.read(8192)
-            if not chunk:
-                break
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()
 
-# ---------- Load intents ----------
-print("🔄 Memuat intents.json ...")
+# =========================
+# LOAD INTENTS
+# =========================
 if not os.path.exists(INTENTS_FILE):
-    print(f"❌ File {INTENTS_FILE} tidak ditemukan. Letakkan intents.json di folder yang sama.")
-    raise SystemExit(1)
+    raise FileNotFoundError("intents.json tidak ditemukan")
 
 with open(INTENTS_FILE, encoding="utf-8") as f:
     intents = json.load(f)
 
-# ---------- Inisialisasi model embedding ----------
-print(f"⚙️ Memuat model embedding ({EMBED_MODEL_NAME}) — ini butuh koneksi internet jika belum terunduh.")
-embedder = SentenceTransformer(EMBED_MODEL_NAME)
+print("⚙️ Memuat model bahasa...")
+embedder = SentenceTransformer(EMBED_MODEL)
 
-# ---------- Caching: kalau intents.json belum berubah, pakai cache ----------
-def load_cached_intent_data():
+# =========================
+# CACHE EMBEDDING
+# =========================
+def load_cache():
     if not os.path.exists(CACHE_FILE) or not os.path.exists(HASH_FILE):
         return None
+
+    if open(HASH_FILE).read().strip() != file_hash(INTENTS_FILE):
+        return None
+
     try:
-        old_hash = open(HASH_FILE).read().strip()
-        new_hash = get_file_hash(INTENTS_FILE)
-        if old_hash != new_hash:
-            return None
         with open(CACHE_FILE, "rb") as f:
-            data = pickle.load(f)
-        # pastikan struktur data valid
-        if isinstance(data, list) and len(data) > 0 and "tag" in data[0]:
-            print("✅ Memuat intent embeddings dari cache.")
-            return data
-    except Exception as e:
-        print("⚠️ Gagal memuat cache:", e)
-    return None
+            return pickle.load(f)
+    except:
+        return None
 
-def save_cached_intent_data(data):
-    try:
-        with open(CACHE_FILE, "wb") as f:
-            pickle.dump(data, f)
-        with open(HASH_FILE, "w") as f:
-            f.write(get_file_hash(INTENTS_FILE))
-        print("✅ Menyimpan cache intent embeddings.")
-    except Exception as e:
-        print("⚠️ Gagal menyimpan cache:", e)
+def save_cache(data):
+    with open(CACHE_FILE, "wb") as f:
+        pickle.dump(data, f)
+    with open(HASH_FILE, "w") as f:
+        f.write(file_hash(INTENTS_FILE))
 
-intent_data = load_cached_intent_data()
+intent_data = load_cache()
 
-# ---------- Jika cache tidak ada / berubah, buat embedding baru ----------
 if intent_data is None:
-    print("⚙️ Membuat embeddings untuk semua patterns di intents.json ...")
+    print("🔄 Membuat embedding intent...")
     intent_data = []
-    for intent in intents.get("intents", []):
+
+    for intent in intents["intents"]:
         patterns = intent.get("patterns", [])
-        if not patterns:
-            # sediakan embedding kosong agar struktur konsisten
-            embeddings = np.zeros((1, embedder.get_sentence_embedding_dimension()))
+        if patterns:
+            embeddings = embedder.encode(patterns, convert_to_numpy=True)
         else:
-            embeddings = embedder.encode(patterns, convert_to_numpy=True, show_progress_bar=False)
+            embeddings = np.zeros((1, embedder.get_sentence_embedding_dimension()))
+
         intent_data.append({
-            "tag": intent.get("tag"),
+            "tag": intent["tag"],
             "responses": intent.get("responses", []),
-            "patterns": patterns,
-            "embeddings": embeddings  # shape: (num_patterns, dim)
+            "embeddings": embeddings
         })
-    # simpan cache
-    save_cached_intent_data(intent_data)
 
-print("✅ Siap. ChatBot semantic aktif!\n")
+    save_cache(intent_data)
+else:
+    print("✅ Cache intent digunakan")
 
-# ---------- Fungsi prediksi (bisa di-import oleh API) ----------
-def predict_intent_semantic(text: str, return_score: bool = False):
-    """
-    Prediksi tag intent berdasar similarity antara user text dan setiap pattern.
-    Mengembalikan tag intent terbaik. Jika score terbaik < SIMILARITY_THRESHOLD, kembalikan 'fallback' (jika ada).
-    Jika return_score True, mengembalikan (tag, score).
-    """
-    if not text or not text.strip():
-        return ("fallback", 0.0) if return_score else "fallback"
+print("🤖 Chatbot siap digunakan")
 
-    user_emb = embedder.encode([text], convert_to_numpy=True)[0]  # shape (dim,)
-    best_tag = "fallback"
-    best_score = 0.0
+# =========================
+# HELPER
+# =========================
+def is_confirmation(text):
+    text = text.lower().strip()
+    return text in ["iya", "ya", "betul", "benar", "oke", "ok"]
+
+def get_response(tag):
+    for intent in intents["intents"]:
+        if intent["tag"] == tag:
+            return random.choice(intent.get("responses", []))
+
+    for intent in intents["intents"]:
+        if intent["tag"] == "fallback":
+            return random.choice(intent.get("responses", []))
+
+    return "Maaf, saya belum memahami pertanyaan Anda."
+
+# =========================
+# PREDIKSI MULTI INTENT
+# =========================
+def predict_intents(text, top_k=TOP_K):
+    if not text.strip():
+        return []
+
+    user_vec = embedder.encode([text], convert_to_numpy=True)[0]
+    results = []
 
     for item in intent_data:
-        emb = item["embeddings"]  # shape (n_patterns, dim)
-        if emb is None or emb.size == 0:
+        if item["tag"] in NON_LAYANAN:
             continue
-        sims = cosine_similarity([user_emb], emb)[0]  # similarities to each pattern
+
+        sims = cosine_similarity([user_vec], item["embeddings"])[0]
         score = float(np.max(sims))
-        if score > best_score:
-            best_score = score
-            best_tag = item["tag"]
 
-    if best_score < SIMILARITY_THRESHOLD:
-        best_tag = "fallback"
+        if score >= SIMILARITY_THRESHOLD:
+            results.append({
+                "tag": item["tag"],
+                "score": score
+            })
 
-    if return_score:
-        return best_tag, best_score
-    return best_tag
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return results[:top_k]
 
-def get_response(intent_tag: str, user_text: str = None):
+# =========================
+# FUNGSI UTAMA UNTUK WEB
+# =========================
+def chat(user_text, state):
     """
-    Ambil response acak dari intents.json berdasarkan tag.
-    Jika tag = 'fallback' dan terdapat intent 'fallback' di intents.json, gunakan response-nya.
-    Jika tidak ada, gunakan pesan default.
+    state = {
+        "awaiting_confirmation": bool,
+        "last_options": []
+    }
     """
-    for intent in intents.get("intents", []):
-        if intent.get("tag") == intent_tag:
-            responses = intent.get("responses", [])
-            if responses:
-                return random.choice(responses)
-    # jika tidak ditemukan tag
-    # cari fallback intent
-    for intent in intents.get("intents", []):
-        if intent.get("tag") == "fallback":
-            responses = intent.get("responses", [])
-            if responses:
-                return random.choice(responses)
-    # default fallback
-    return "Maaf, aku belum paham maksudmu 😅"
 
-# ---------- Interactive loop (CLI) ----------
-if __name__ == "__main__":
-    print("💬 Ketik pesan (ketik 'keluar' / 'exit' untuk berhenti)")
-    while True:
-        try:
-            user = input("Kamu: ").strip()
-        except (KeyboardInterrupt, EOFError):
-            print("\nBot: Sampai jumpa lagi! 👋")
-            break
+    # keluar
+    if user_text.lower() in ["exit", "keluar", "quit"]:
+        return "Terima kasih telah menghubungi kelurahan 🙏", state
 
-        if user.lower() in ["keluar", "exit", "quit"]:
-            print("Bot: Sampai jumpa lagi! 👋")
-            break
-        if user == "":
-            print("Bot: Silakan ketik sesuatu.")
-            continue
+    # =====================
+    # JAWAB KONFIRMASI
+    # =====================
+    if state.get("awaiting_confirmation") and is_confirmation(user_text):
+        replies = []
+        for tag in state.get("last_options", []):
+            replies.append(get_response(tag))
 
-        tag, score = predict_intent_semantic(user, return_score=True)
-        response = get_response(tag, user)
-        # tampilkan debug score kecil (bisa dihapus)
-        # print(f"[debug] intent={tag} score={score:.3f}")
-        print("Bot:", response)
+        state["awaiting_confirmation"] = False
+        state["last_options"] = []
+
+        return "\n\n".join(replies), state
+
+    # =====================
+    # PREDIKSI INTENT
+    # =====================
+    results = predict_intents(user_text)
+
+    if not results:
+        return get_response("fallback"), state
+
+    # =====================
+    # SATU INTENT
+    # =====================
+    if len(results) == 1:
+        return get_response(results[0]["tag"]), state
+
+    # =====================
+    # MULTI / AMBIGU
+    # =====================
+    gap = results[0]["score"] - results[1]["score"]
+
+    if gap < 0.1:
+        tags = [r["tag"] for r in results]
+
+        state["awaiting_confirmation"] = True
+        state["last_options"] = tags
+
+        opsi = " dan ".join(tag.replace("_", " ") for tag in tags)
+
+        return (
+            "Saya menemukan lebih dari satu layanan yang mungkin.\n"
+            f"Apakah yang Anda maksud adalah {opsi}?",
+            state
+        )
+
+    return get_response(results[0]["tag"]), state
