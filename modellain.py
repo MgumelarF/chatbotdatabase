@@ -20,7 +20,7 @@ CACHE_FILE = "intent_cache.pkl"
 HASH_FILE = "intent_hash.txt"
 
 EMBED_MODEL = "paraphrase-MiniLM-L6-v2"
-SIMILARITY_THRESHOLD = 0.45
+SIMILARITY_THRESHOLD = 0.35
 TOP_K = 2
 
 # intent yang bukan layanan utama
@@ -44,7 +44,7 @@ def file_hash(path):
 # LOAD INTENTS
 # =========================
 if not os.path.exists(INTENTS_FILE):
-    raise FileNotFoundError("❌ intents.json tidak ditemukan")
+    raise FileNotFoundError("intents.json tidak ditemukan")
 
 with open(INTENTS_FILE, encoding="utf-8") as f:
     intents = json.load(f)
@@ -65,7 +65,7 @@ def load_cache():
     try:
         with open(CACHE_FILE, "rb") as f:
             return pickle.load(f)
-    except Exception:
+    except:
         return None
 
 def save_cache(data):
@@ -74,34 +74,25 @@ def save_cache(data):
     with open(HASH_FILE, "w") as f:
         f.write(file_hash(INTENTS_FILE))
 
-# =========================
-# BUILD INTENT DATA
-# =========================
-def build_intent_data():
-    data = []
+intent_data = load_cache()
+
+if intent_data is None:
+    print("🔄 Membuat embedding intent...")
+    intent_data = []
 
     for intent in intents["intents"]:
         patterns = intent.get("patterns", [])
         if patterns:
             embeddings = embedder.encode(patterns, convert_to_numpy=True)
         else:
-            embeddings = np.zeros(
-                (1, embedder.get_sentence_embedding_dimension())
-            )
+            embeddings = np.zeros((1, embedder.get_sentence_embedding_dimension()))
 
-        data.append({
+        intent_data.append({
             "tag": intent["tag"],
             "responses": intent.get("responses", []),
             "embeddings": embeddings
         })
 
-    return data
-
-intent_data = load_cache()
-
-if intent_data is None:
-    print("🔄 Membuat embedding intent...")
-    intent_data = build_intent_data()
     save_cache(intent_data)
 else:
     print("✅ Cache intent digunakan")
@@ -153,7 +144,7 @@ def predict_intents(text, top_k=TOP_K):
     return results[:top_k]
 
 # =========================
-# CHAT UTAMA (UNTUK WEB)
+# FUNGSI UTAMA UNTUK WEB
 # =========================
 def chat(user_text, state):
     """
@@ -163,30 +154,40 @@ def chat(user_text, state):
     }
     """
 
+    # keluar
     if user_text.lower() in ["exit", "keluar", "quit"]:
         return "Terima kasih telah menghubungi kelurahan 🙏", state
 
-    # KONFIRMASI
+    # =====================
+    # JAWAB KONFIRMASI
+    # =====================
     if state.get("awaiting_confirmation") and is_confirmation(user_text):
-        replies = [
-            get_response(tag)
-            for tag in state.get("last_options", [])
-        ]
+        replies = []
+        for tag in state.get("last_options", []):
+            replies.append(get_response(tag))
 
         state["awaiting_confirmation"] = False
         state["last_options"] = []
 
         return "\n\n".join(replies), state
 
+    # =====================
     # PREDIKSI INTENT
+    # =====================
     results = predict_intents(user_text)
 
     if not results:
         return get_response("fallback"), state
 
+    # =====================
+    # SATU INTENT
+    # =====================
     if len(results) == 1:
         return get_response(results[0]["tag"]), state
 
+    # =====================
+    # MULTI / AMBIGU
+    # =====================
     gap = results[0]["score"] - results[1]["score"]
 
     if gap < 0.1:
@@ -204,19 +205,3 @@ def chat(user_text, state):
         )
 
     return get_response(results[0]["tag"]), state
-
-# =========================
-# RELOAD INTENTS (AMAN)
-# =========================
-def reload_intents():
-    global intents, intent_data
-
-    print("🔄 Reload intents dari file...")
-
-    with open(INTENTS_FILE, encoding="utf-8") as f:
-        intents = json.load(f)
-
-    intent_data = build_intent_data()
-    save_cache(intent_data)
-
-    print("✅ Intent berhasil direload")
