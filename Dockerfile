@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM pytorch/pytorch:2.1.2-cpu
 
 WORKDIR /app
 
@@ -12,12 +12,9 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip dan setuptools
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Install PyTorch CPU (versi ringan)
-RUN pip install --no-cache-dir \
-    torch==2.1.2+cpu \
-    torchvision==0.16.2+cpu \
-    torchaudio==2.1.2+cpu \
-    --index-url https://download.pytorch.org/whl/cpu
+ENV PIP_DEFAULT_TIMEOUT=100
+ENV TRANSFORMERS_NO_TORCH=1
+ENV TOKENIZERS_PARALLELISM=false
 
 # Copy requirements dan install
 COPY requirements.txt .
