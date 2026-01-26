@@ -17,7 +17,18 @@ import json
 import os
 import re
 
-from db import users_collection
+try:
+    from db import users_collection, admin_logs_collection, faq_collection, categories_collection, db
+    print("✅ Database modules imported successfully")
+except ImportError as e:
+    print(f"⚠️ Database import error: {e}")
+    # Buat dummy collections
+    users_collection = None
+    admin_logs_collection = None
+    faq_collection = None
+    categories_collection = None
+    db = None
+    
 from werkzeug.security import generate_password_hash, check_password_hash
 from auth import login_required, superadmin_required
 from datetime import timedelta

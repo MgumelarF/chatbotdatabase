@@ -2,45 +2,81 @@ from pymongo import MongoClient
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-import os  # <-- TAMBAHKAN INI
-import logging  # <-- TAMBAHKAN INI
+import os
+import time
 
 # =========================
-# CONFIG
+# CONFIG - GUNAKAN ENVIRONMENT VARIABLES
 # =========================
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")  # <-- GANTI INI
-DB_NAME = "faq_app"
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
+DB_NAME = os.environ.get("DB_NAME", "faq_app")
 FAQ_COLLECTION = "faq"
 
-SIMILARITY_THRESHOLD = 0.38
-MULTI_INTENT_GAP = 0.08
-MAX_ANSWERS = 2
+# Jika MONGO_URI tidak ada, beri warning tapi jangan crash
+if not MONGO_URI or MONGO_URI == "mongodb://localhost:27017/":
+    print("⚠️ WARNING: MONGO_URI not set. Using localhost (may fail in Railway)")
 
-# Keyword logic
-KEYWORD_BARU = ["baru", "bikin", "pertama"]
-KEYWORD_CETAK_ULANG = ["hilang", "rusak", "cetak ulang"]
+print(f"🔗 Connecting to MongoDB: {MONGO_URI[:50]}...")
 
 # =========================
-# CONNECT DB
+# CONNECT DB DENGAN RETRY LOGIC
 # =========================
-try:
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)  # <-- TAMBAHKAN timeout
-    client.admin.command('ping')  # <-- TAMBAHKAN ping test
-    print("✅ MongoDB connected successfully")
-except Exception as e:
-    print(f"❌ MongoDB connection failed: {e}")
-    raise e
+def connect_to_mongo():
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            client = MongoClient(
+                MONGO_URI,
+                serverSelectionTimeoutMS=10000,
+                connectTimeoutMS=10000,
+                socketTimeoutMS=10000
+            )
+            # Test connection
+            client.admin.command('ping')
+            print("✅ MongoDB connected successfully")
+            return client
+        except Exception as e:
+            print(f"❌ MongoDB connection attempt {attempt + 1}/{max_retries} failed: {str(e)[:100]}")
+            if attempt < max_retries - 1:
+                time.sleep(2)  # Tunggu 2 detik sebelum retry
+            else:
+                print("⚠️ WARNING: Could not connect to MongoDB. Some features may not work.")
+                return None
 
-db = client[DB_NAME]
+client = connect_to_mongo()
+
+# Jika koneksi gagal, buat dummy client untuk mencegah crash
+if client is None:
+    class DummyMongoClient:
+        def __getitem__(self, name):
+            class DummyCollection:
+                def find(self, *args, **kwargs):
+                    return []
+                def find_one(self, *args, **kwargs):
+                    return None
+                def insert_one(self, *args, **kwargs):
+                    return None
+                def update_one(self, *args, **kwargs):
+                    return None
+                def delete_one(self, *args, **kwargs):
+                    return None
+                def count_documents(self, *args, **kwargs):
+                    return 0
+            return DummyCollection()
+    
+    db = DummyMongoClient()
+    print("⚠️ Using dummy MongoDB client (offline mode)")
+else:
+    db = client[DB_NAME]
+
 faq_collection = db[FAQ_COLLECTION]
 
 # =========================
-# LOAD MODEL (DENGAN ERROR HANDLING)
+# LOAD MODEL (SAMA SEPERTI SEBELUMNYA)
 # =========================
 print("⚙️ Loading embedding model...")
 
 try:
-    # Coba download model jika belum ada
     model_name = "paraphrase-MiniLM-L6-v2"
     embedder = SentenceTransformer(model_name)
     print(f"✅ Model {model_name} loaded successfully")
@@ -49,7 +85,6 @@ except Exception as e:
     # Fallback simple model
     class SimpleEmbedder:
         def encode(self, texts, **kwargs):
-            # Return dummy embeddings
             import numpy as np
             return np.random.randn(len(texts), 384)
     

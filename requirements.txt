@@ -5,6 +5,7 @@ Werkzeug==2.3.7
 pymongo==4.6.0
 flask-mail==0.9.1
 gunicorn==21.2.0
+dnspython==2.4.2  # Untuk MongoDB SRV connection
 
 # AI/ML
 numpy==1.24.3
