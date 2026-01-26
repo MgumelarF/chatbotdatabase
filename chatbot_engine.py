@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from sentence_transformers import SentenceTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import os
@@ -76,20 +76,16 @@ faq_collection = db[FAQ_COLLECTION]
 # =========================
 print("⚙️ Loading embedding model...")
 
-try:
-    model_name = "paraphrase-MiniLM-L6-v2"
-    embedder = SentenceTransformer(model_name)
-    print(f"✅ Model {model_name} loaded successfully")
-except Exception as e:
-    print(f"❌ Failed to load model: {e}")
-    # Fallback simple model
-    class SimpleEmbedder:
-        def encode(self, texts, **kwargs):
-            import numpy as np
-            return np.random.randn(len(texts), 384)
-    
-    embedder = SimpleEmbedder()
-    print("⚠️ Using dummy embedder - chatbot accuracy will be low")
+print("⚙️ Loading TF-IDF model...")
+
+vectorizer = TfidfVectorizer(
+    lowercase=True,
+    stop_words=None,
+    ngram_range=(1, 2)
+)
+
+print("✅ TF-IDF ready")
+
 
 # =========================
 # LOAD FAQ
@@ -111,7 +107,7 @@ def load_faq():
     questions = [f["question"] for f in faq_data]
     
     try:
-        faq_embeddings = embedder.encode(questions, convert_to_numpy=True)
+        faq_embeddings = vectorizer.fit_transform(questions).toarray()
         print(f"✅ {len(faq_data)} FAQ loaded")
     except Exception as e:
         print(f"❌ Failed to encode FAQ: {e}")
@@ -152,7 +148,7 @@ def get_response(user_text: str) -> str:
         return "Data FAQ belum tersedia."
 
     try:
-        user_vec = embedder.encode([user_text], convert_to_numpy=True)[0]
+        user_vec = vectorizer.transform([user_text]).toarray()[0]
         sims = cosine_similarity([user_vec], faq_embeddings)[0]
 
         scored = []
