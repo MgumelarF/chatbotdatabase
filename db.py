@@ -1,8 +1,15 @@
 import os
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
+from dotenv import load_dotenv
 
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
+# Load .env (untuk lokal)
+load_dotenv()
+
+MONGO_URI = os.getenv("MONGO_URI")
+
+if not MONGO_URI:
+    raise ValueError("❌ MONGO_URI belum diset di environment variable!")
 
 try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
@@ -12,7 +19,7 @@ except ConnectionFailure as e:
     print(f"❌ MongoDB connection failed: {e}")
     raise e
 
-DB_NAME = os.environ.get("DB_NAME", "faq_app")
+DB_NAME = os.getenv("DB_NAME", "faq_app")
 db = client[DB_NAME]
 
 # Collections
