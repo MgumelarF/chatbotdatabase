@@ -1,29 +1,15 @@
-FROM pytorch/pytorch:2.1.2-cpu
+FROM pytorch/pytorch:2.1.2-cpu-py3.10
 
 WORKDIR /app
 
-# Install system dependencies minimal
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+RUN apt-get update && apt-get install -y gcc g++ \
+    && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip dan setuptools
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-
-ENV PIP_DEFAULT_TIMEOUT=100
-ENV TRANSFORMERS_NO_TORCH=1
-ENV TOKENIZERS_PARALLELISM=false
-
-# Copy requirements dan install
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy aplikasi
 COPY . .
 
-# Non-root user untuk security
 RUN useradd -m -u 1000 railway && chown -R railway:railway /app
 USER railway
 
