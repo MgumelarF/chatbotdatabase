@@ -261,6 +261,108 @@ header {
     gap: 6px;
     margin: 6px 0;
 }
+
+.chat-notif-badge {
+    position: absolute;
+    bottom: 70px;          /* posisinya tepat di atas tombol */
+    right: 0;
+    
+    background: #ff4d4d;
+    color: white;
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 20px;
+
+    white-space: nowrap;
+    font-weight: 500;
+
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    animation: pulse 1.2s infinite;
+}
+
+.chat-notif-badge::after {
+    content: "";
+    position: absolute;
+    bottom: -6px;
+    right: 16px;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #ff4d4d;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.chat-notif-badge {
+    animation: pulse 1s infinite;
+}
+
+
+/* ===== WELCOME SECTION ===== */
+.welcome h1 {
+    font-size: 28px;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.welcome h2 {
+    font-size: 22px;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.welcome p {
+    font-size: 16px;
+    margin-bottom: 20px;
+    color: #555;
+}
+
+/* ===== INFO CARDS ===== */
+.info-cards {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.card {
+    flex: 1;
+    min-width: 200px;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Warna biru untuk FAQ */
+.faq-card-blue {
+    border: 2px solid #4c8ff7;
+    background: #d7e5ff;
+}
+
+/* Warna ungu untuk Tujuan */
+.faq-card-purple {
+    border: 2px solid #6c5dd3;
+    background: #e1ddf8;
+}
+
+.card h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
+.card p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+
+
 /* =========================
    RESPONSIVE UNIVERSAL
    Berlaku untuk semua device kecil

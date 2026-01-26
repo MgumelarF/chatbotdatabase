@@ -61,25 +61,34 @@ input.addEventListener("keydown", (e) => {
     }
 });
 
+// ===== NOTIFIKASI CHATBOT =====
+const chatNotif = document.getElementById("chatNotif");
+
+// Langsung tampil saat halaman dibuka
+chatNotif.style.display = "block";
+
+// Toggle chat + hilangkan notif saat dibuka
 chatBtn.addEventListener("click", () => {
-    // Toggle tampilan chatbox
-    if (chatBox.style.display === "flex") {
-        chatBox.style.display = "none"; // sembunyikan kalau sudah terbuka
-    } else {
-        chatBox.style.display = "flex"; // tampilkan
+    if (chatBox.style.display !== "flex") {
+        chatBox.style.display = "flex";
+        chatNotif.style.display = "none"; // notif hilang setelah dibuka
+
         if (firstOpen) {
             setTimeout(() => {
                 addMessage("bot", "👋 Halo! Ada yang bisa saya bantu hari ini?");
             }, 150);
             firstOpen = false;
         }
+    } else {
+        chatBox.style.display = "none";
     }
 });
 
+// Tombol X untuk menutup chat
 closeChat.addEventListener("click", () => {
-    chatBox.style.display = "none"; // sembunyikan saat klik X
-})
+    chatBox.style.display = "none";
 
-hamburgerBtn.addEventListener("click", () => {
-    menu.classList.toggle("show");
+    setTimeout(() => {
+        chatNotif.style.display = "block";
+    }, 2000);
 });

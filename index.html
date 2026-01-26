@@ -7,17 +7,17 @@
     <title>FAQ Kelurahan</title>
 
     <!-- CSS -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
     <!-- <link rel="stylesheet" href="faq.css"> -->
 </head>
 <body>
 <header>
     <span class="logo">Kelurahan Cipinang Melayu</span>
-    <div class="hamburger" id="hamburgerBtn">☰</div>
+    <!-- <div class="hamburger" id="hamburgerBtn">☰</div>
     <nav class="nav-menu" id="menu">
         <a href="#">Beranda</a>
         <a href="login.html">Login</a>
-    </nav>
+    </nav> -->
 </header>
 
 <div class="container">
@@ -31,12 +31,32 @@
 
     <!-- Main Content -->
     <main class="faq-main" id="faqMain">
-        <div id="faqContent"></div>
+        <div id="faqContent">
+            <div class="welcome">
+                <h1>Selamat datang di website informasi</h1>
+                <h2>Kelurahan Cipinang Melayu</h2>
+                <p>Temukan jawaban dan informasi seputar Kelurahan Cipinang Melayu</p>
+
+                <div class="info-cards">
+                    <div class="card faq-card-blue">
+                        <h3>Apa itu FAQ?</h3>
+                        <p>FAQ (Frequently Asked Questions) adalah kumpulan pertanyaan yang sering diajukan warga terkait layanan dan informasi kelurahan.</p>
+                    </div>
+                    <div class="card faq-card-purple">
+                        <h3>Tujuan Website</h3>
+                        <p>Memberikan warga Cipinang Melayu kemudahan mengakses informasi administrasi, layanan, dan publik secara digital.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 </div>
 
 <!-- Chat Button -->
-<div class="chat-btn" id="chatButton">💬</div>
+<div class="chat-btn" id="chatButton">
+    💬
+     <span class="chat-notif-badge" id="chatNotif" style="display:none;">tanya aku sekarang</span>
+</div>
 <div class="chat-popup" id="chatBox">
     <div class="chat-header">
         Chat Kelurahan
@@ -50,7 +70,7 @@
 </div>
 
 <!-- JS -->
-<script src="script.js"></script>
-<script src="faq.js"></script>
+<script src="/static/js/script.js"></script>
+<script src="/static/js/faq.js"></script>
 </body>
 </html>

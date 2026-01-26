@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 # IMPORT MODEL CHATBOT
-from modellain import predict_intent_semantic, get_response
+from chatbot_engine import get_response
 
 app = Flask(__name__)
 

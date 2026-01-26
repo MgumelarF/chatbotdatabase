@@ -13,7 +13,7 @@ document.getElementById("loginBtn").addEventListener("click", function () {
         return;
     }
 
-    fetch("/login", {
+    fetch("/admin/login", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

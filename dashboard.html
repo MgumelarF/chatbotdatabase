@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Admin</title>
-    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
 </head>
 <body>
 
@@ -35,10 +35,16 @@
                 <span class="text">Edit FAQ</span>
             </li>
 
-            <li data-section="intents">
+            <!-- <li data-section="intents">
                 <span class="icon">🤖</span>
                 <span class="text">Edit intents.json</span>
+            </li> -->
+
+            <li data-section="users">
+                <span class="icon">👤</span>
+                <span class="text">Kelola Admin</span>
             </li>
+
         </ul>
     </aside>
 
@@ -79,9 +85,11 @@
 
         <!-- FAQ -->
         <section id="faq" class="section">
-            <h2>Kelola Pertanyaan</h2>
+            <h2 class="section-title">Kelola Pertanyaan</h2>
 
             <!-- Form Tambah FAQ di atas daftar -->
+            <h3 class="sub-section-title">Tambah FAQ</h3>
+
             <div id="faqForm" style="margin-bottom:15px;">
                 <input type="text" id="question" placeholder="Pertanyaan">
                 <textarea id="answer" placeholder="Jawaban"></textarea>
@@ -94,22 +102,64 @@
             </div>
 
             <hr>
+            
+            <h3 class="sub-section-title">Cari Pertanyaan & Jawaban</h3>
 
+            <!-- FILTER & SEARCH FAQ -->
+             <div id="faqFilter">
+                <div class="faq-filter-left">
+                    <input type="text" id="faqSearchInput" placeholder="Cari pertanyaan...">
+                    <select id="faqCategoryFilter">
+                        <option value="all">Semua Kategori</option>
+                        <option value="none">Tanpa Kategori</option>
+                    </select>
+                </div>
+
+                <div class="faq-filter-right">
+                    <button id="faqSearchBtn">Cari</button>
+                    <button id="faqResetBtn">Reset</button>
+                </div>
+            </div>
+
+
+
+            <hr>
+            
+            <h3 class="sub-section-title">Daftar Pertanyaan & Jawaban</h3>
+            
             <!-- Daftar FAQ akan ditampilkan di bawah form -->
             <div id="faqList"></div>
+
         </section>
 
         <!-- INTENTS -->
-        <section id="intents" class="section">
+        <!-- <section id="intents" class="section">
             <h2>Edit intents.json</h2>
             <textarea id="intentsEditor" rows="10"></textarea>
             <br>
             <button id="saveIntentsBtn">Simpan & Latih Ulang AI</button>
+        </section> -->
+
+        <!-- SUPERADMIN -->
+        <section id="users" class="section">
+            <h2>Kelola Admin</h2>
+
+            <input id="newUsername" placeholder="Username">
+            <input id="newEmail" placeholder="Email">
+            <select id="newRole">
+                <option value="admin">Admin</option>
+                <option value="superadmin">Superadmin</option>
+            </select>
+            <button id="addUserBtn">Tambah User</button>
+
+            <h3>Daftar Admin</h3>
+            <ul id="userList"></ul>
         </section>
+
 
     </main>
 </div>
 
-<script src="dashboard.js"></script>
+<script src="/static/js/dashboard.js"></script>
 </body>
 </html>

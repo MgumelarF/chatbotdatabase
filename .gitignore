@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Data files (jangan commit data sensitif)
+data/*.json
+!data/intents.json.example
+
+# MongoDB
+mongodb-data/
+*.bson
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Railway
+railway.toml.local

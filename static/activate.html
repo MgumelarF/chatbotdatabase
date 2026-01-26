@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Aktivasi Admin</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="activate-container">
+        <h2>Aktivasi Admin</h2>
+        <input type="hidden" id="token">
+        <label>Password Baru</label>
+        <input type="password" id="newPassword" placeholder="Masukkan password">
+        <button id="activateBtn">Aktivasi</button>
+        <div id="msg"></div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("token");
+        document.getElementById("token").value = token;
+
+        document.getElementById("activateBtn").onclick = async () => {
+            const password = document.getElementById("newPassword").value.trim();
+            if (!password) return alert("Password wajib diisi");
+
+            const res = await fetch("/admin/activate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token, password })
+            });
+
+            const data = await res.json();
+            const msgDiv = document.getElementById("msg");
+
+            if (data.success) {
+                msgDiv.style.color = "green";
+                msgDiv.innerText = "Akun diaktifkan! Silahkan login.";
+            } else {
+                msgDiv.style.color = "red";
+                msgDiv.innerText = data.error;
+            }
+        };
+    </script>
+</body>
+</html>
