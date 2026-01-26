@@ -3,17 +3,16 @@ builder = "nixpacks"
 buildCommand = """
     pip install --upgrade pip
     pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-    pip install -r requirements.txt --no-cache-dir
+    pip install -r requirements.txt
 """
 
 [deploy]
-startCommand = "python app.py"
+startCommand = "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120"
 healthCheckPath = "/"
-healthCheckTimeout = 60
+healthCheckTimeout = 120
 
 [[services]]
 port = 5000
-autostart = true
 
 [variables]
 PYTHON_VERSION = "3.10"

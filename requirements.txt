@@ -1,3 +1,4 @@
+# Core
 Flask==2.3.3
 flask-cors==4.0.0
 python-dotenv==1.0.1
@@ -6,16 +7,18 @@ pymongo==4.6.0
 flask-mail==0.9.1
 gunicorn==21.2.0
 
-# AI/ML dependencies - LIGHTWEIGHT VERSION
+# AI/ML (optimized for Railway)
 numpy==1.24.3
 scikit-learn==1.3.2
-
-# GANTI: Pakai model yang lebih kecil
 sentence-transformers==2.2.2
+transformers==4.30.2
+tokenizers==0.13.3
 
-# HAPUS PyTorch yang besar, ganti dengan:
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.1.2+cpu
+# PyTorch CPU-only (lebih kecil)
+torch==2.1.2
+torchvision==0.16.2
+torchaudio==2.1.2
+--index-url https://download.pytorch.org/whl/cpu
 
-# OPTIONAL: Untuk mengurangi size lebih lanjut
-transformers==4.30.2  # bisa dihapus jika tidak perlu
+# Optional - untuk mengurangi size
+--no-deps  # Hindari install dependencies yang tidak perlu
