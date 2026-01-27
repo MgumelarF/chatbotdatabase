@@ -4,6 +4,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import os
 import time
+import re
 
 # =========================
 # CONFIG - GUNAKAN ENVIRONMENT VARIABLES
@@ -12,11 +13,18 @@ MONGO_URI = os.environ.get("MONGO_URI", "mongodb://localhost:27017/")
 DB_NAME = os.environ.get("DB_NAME", "faq_app")
 FAQ_COLLECTION = "faq"
 
-# Jika MONGO_URI tidak ada, beri warning tapi jangan crash
-if not MONGO_URI or MONGO_URI == "mongodb://localhost:27017/":
-    print("⚠️ WARNING: MONGO_URI not set. Using localhost (may fail in Railway)")
+# =========================
+# HYPERPARAMETER CHATBOT (sama seperti model pertama)
+# =========================
+SIMILARITY_THRESHOLD = 0.38  # Threshold yang sama dengan model pertama
+MULTI_INTENT_GAP = 0.08      # Gap yang sama
+MAX_ANSWERS = 2              # Maksimal jawaban yang sama
 
-print(f"🔗 Connecting to MongoDB: {MONGO_URI[:50]}...")
+# =========================
+# KEYWORDS UNTUK PENYESUAIAN SCORE (sama seperti model pertama)
+# =========================
+KEYWORD_BARU = ["baru", "bikin", "pertama"]
+KEYWORD_CETAK_ULANG = ["hilang", "rusak", "cetak ulang"]
 
 # =========================
 # CONNECT DB DENGAN RETRY LOGIC
@@ -72,20 +80,30 @@ else:
 faq_collection = db[FAQ_COLLECTION]
 
 # =========================
-# LOAD MODEL (SAMA SEPERTI SEBELUMNYA)
+# LOAD MODEL - TF-IDF RINGAN
 # =========================
-print("⚙️ Loading embedding model...")
-
 print("⚙️ Loading TF-IDF model...")
 
+# Preprocessing function sederhana
+def preprocess_text(text):
+    if not text:
+        return ""
+    # Lowercase
+    text = text.lower()
+    # Remove extra whitespace
+    text = ' '.join(text.split())
+    return text
+
+# TF-IDF Vectorizer yang ringan
 vectorizer = TfidfVectorizer(
-    lowercase=True,
-    stop_words=None,
-    ngram_range=(1, 2)
+    lowercase=False,  # Already lowercase in preprocessing
+    stop_words=None,  # Tidak pakai stop words agar lebih akurat
+    ngram_range=(1, 2),  # Bisa single word atau 2 kata
+    min_df=1,  # Minimal 1 dokumen
+    max_features=1000  # Batasi features untuk lebih ringan
 )
 
 print("✅ TF-IDF ready")
-
 
 # =========================
 # LOAD FAQ
@@ -104,19 +122,23 @@ def load_faq():
         print("⚠️ FAQ kosong")
         return
 
-    questions = [f["question"] for f in faq_data]
+    # Preprocess questions
+    questions = [preprocess_text(f["question"]) for f in faq_data]
     
     try:
+        # Fit and transform FAQ questions
         faq_embeddings = vectorizer.fit_transform(questions).toarray()
         print(f"✅ {len(faq_data)} FAQ loaded")
+        
     except Exception as e:
         print(f"❌ Failed to encode FAQ: {e}")
         faq_embeddings = None
 
+# Load FAQ on startup
 load_faq()
 
 # =========================
-# HELPER: KEYWORD SCORE
+# HELPER: KEYWORD SCORE - SAMA PERSIS DENGAN MODEL PERTAMA
 # =========================
 def keyword_adjustment(user_text, faq_question):
     u = user_text.lower()
@@ -138,7 +160,7 @@ def keyword_adjustment(user_text, faq_question):
     return score
 
 # =========================
-# CHAT FUNCTION (DENGAN ERROR HANDLING)
+# CHAT FUNCTION - SAMA PERSIS LOGIKANYA DENGAN MODEL PERTAMA
 # =========================
 def get_response(user_text: str) -> str:
     if not user_text.strip():
@@ -148,9 +170,19 @@ def get_response(user_text: str) -> str:
         return "Data FAQ belum tersedia."
 
     try:
-        user_vec = vectorizer.transform([user_text]).toarray()[0]
+        # Preprocess user input
+        processed_input = preprocess_text(user_text)
+        
+        # Transform user input to vector
+        user_vec = vectorizer.transform([processed_input]).toarray()[0]
+        
+        # Calculate similarities
         sims = cosine_similarity([user_vec], faq_embeddings)[0]
-
+        
+        # Debug info (opsional)
+        # print(f"Max similarity: {max(sims):.3f}")
+        
+        # Apply threshold and keyword adjustment - LOGIKA SAMA
         scored = []
         for idx, base_score in enumerate(sims):
             if base_score < SIMILARITY_THRESHOLD:
@@ -163,8 +195,10 @@ def get_response(user_text: str) -> str:
         if not scored:
             return "Maaf, saya belum menemukan jawaban yang sesuai."
 
+        # Sort by score
         scored.sort(key=lambda x: x[1], reverse=True)
 
+        # Get top answer(s) - LOGIKA SAMA
         best_score = scored[0][1]
         selected = [
             (idx, score)
@@ -172,6 +206,7 @@ def get_response(user_text: str) -> str:
             if score >= best_score - MULTI_INTENT_GAP
         ][:MAX_ANSWERS]
 
+        # Format response
         responses = []
         for idx, _ in selected:
             responses.append(f"📌 {faq_data[idx]['answer']}")
@@ -183,9 +218,32 @@ def get_response(user_text: str) -> str:
         return "Maaf, terjadi kesalahan dalam memproses pertanyaan Anda."
 
 # =========================
-# RELOAD
+# RELOAD FUNCTION - SAMA
 # =========================
 def reload_chatbot():
     print("🔄 Reload chatbot...")
     load_faq()
     print("✅ Reload selesai")
+
+# =========================
+# UTILITY FUNCTIONS
+# =========================
+def get_faq_stats():
+    """Get FAQ statistics"""
+    if not faq_data:
+        return {"count": 0, "status": "empty"}
+    
+    return {
+        "count": len(faq_data),
+        "status": "loaded",
+        "categories": len(set(f.get("category_id", "") for f in faq_data))
+    }
+
+# Test the chatbot on load
+if __name__ == "__main__":
+    print("🧪 Testing chatbot...")
+    test_questions = [
+        "Halo",
+        "Bagaimana cara membuat KTP?",
+        "Syarat buat KTP"
+    ]

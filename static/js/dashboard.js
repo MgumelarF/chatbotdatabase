@@ -109,31 +109,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         loadCategoryOptions();
     }
+
     function lockCategoryActions(activeRow) {
-        // lock tombol tambah kategori
         document.getElementById("addCategoryBtn").disabled = true;
         document.getElementById("newCategoryName").disabled = true;
 
-        // lock semua tombol edit & hapus kategori
         document.querySelectorAll(".editCatBtn, .delCatBtn").forEach(btn => {
             btn.disabled = true;
         });
 
-        // aktifkan kembali tombol edit di baris yang sedang diedit
         const editBtn = activeRow.querySelector(".editCatBtn");
-        if (editBtn) editBtn.disabled = true; // tetap disable (sedang aktif)
+        if (editBtn) editBtn.disabled = true;
 
-        // highlight baris kategori
         activeRow.classList.add("editing");
     }
 
-
     function isValidCategoryName(name) {
-        // minimal 3 karakter
         if (name.length < 3) return false;
-
-        // hanya boleh huruf, angka, dan spasi
-        // HARUS mengandung minimal 1 huruf
         const regex = /^(?=.*[a-zA-Z])[a-zA-Z0-9\s]+$/;
         return regex.test(name);
     }
@@ -201,16 +193,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-
     /************** FAQ **************/
-    
     let faqs = [];
     let activeEditForm = null;
     let activeFaqDiv = null;
     let isDirtyEdit = false;
     let faqSearchKeyword = "";
     let faqCategoryFilter = "all";
-
 
     async function loadFaq() {
         const res = await fetch("/faq");
@@ -263,12 +252,8 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        faqs
-        .filter(item => {
-            // filter teks pertanyaan
+        const filteredFaqs = faqs.filter(item => {
             const matchText = item.question.toLowerCase().includes(faqSearchKeyword);
-
-            // filter kategori
             let matchCategory = true;
 
             if (faqCategoryFilter === "none") {
@@ -278,9 +263,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             return matchText && matchCategory;
-        })
-        .forEach((item, i) => {
+        });
+
+        filteredFaqs.forEach((item) => {
             const div = document.createElement("div");
+            div.setAttribute("data-faq-id", item._id);
+            
             div.innerHTML = `
                 <b>${item.question}</b> <i>(${getCategoryName(item.category_id)})</i><br>
                 ${item.answer}<br>
@@ -290,48 +278,12 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
             list.appendChild(div);
 
-            div.querySelector(".editFaqBtn").onclick = () => editFaq(i, div);
-            div.querySelector(".delFaqBtn").onclick = () => deleteFaq(i);
+            div.querySelector(".editFaqBtn").onclick = () => editFaqById(item._id, div);
+            div.querySelector(".delFaqBtn").onclick = () => deleteFaqById(item._id);
         });
     }
 
-    function lockAddFaqForm() {
-        document.getElementById("question").disabled = true;
-        document.getElementById("answer").disabled = true;
-        document.getElementById("faqCategory").disabled = true;
-        document.getElementById("saveFaqBtn").disabled = true;
-
-        document.getElementById("faqForm").style.opacity = "0.5";
-    }
-
-    function unlockAddFaqForm() {
-        document.getElementById("question").disabled = false;
-        document.getElementById("answer").disabled = false;
-        document.getElementById("faqCategory").disabled = false;
-        document.getElementById("saveFaqBtn").disabled = false;
-
-        document.getElementById("faqForm").style.opacity = "1";
-    }
-
-    function lockFaqSearch() {
-        document.getElementById("faqSearchInput").disabled = true;
-        document.getElementById("faqCategoryFilter").disabled = true;
-        document.getElementById("faqSearchBtn").disabled = true;
-        document.getElementById("faqResetBtn").disabled = true;
-
-        document.getElementById("faqFilter").style.opacity = "0.5";
-    }
-
-    function unlockFaqSearch() {
-        document.getElementById("faqSearchInput").disabled = false;
-        document.getElementById("faqCategoryFilter").disabled = false;
-        document.getElementById("faqSearchBtn").disabled = false;
-        document.getElementById("faqResetBtn").disabled = false;
-
-        document.getElementById("faqFilter").style.opacity = "1";
-    }
-
-    function editFaq(i, faqDiv) {
+    function editFaqById(faqId, faqDiv) {
         if (activeEditForm && isDirtyEdit) {
             const ok = confirm("Perubahan belum disimpan. Lanjutkan dan batalkan perubahan?");
             if (!ok) return;
@@ -350,89 +302,185 @@ document.addEventListener("DOMContentLoaded", () => {
 
         isDirtyEdit = false;
 
-        // Cari ID FAQ dari data yang ditampilkan
-        // Kita perlu cara untuk menyimpan ID FAQ di elemen div
-        // Tapi kode Anda belum menyimpannya
-        
-        // SOLUSI: Simpan FAQ ID sebagai data attribute di elemen FAQ
-        // Pertama, ubah cara renderFaq untuk menyimpan ID:
-    }
+        // Dapatkan data FAQ yang akan diedit
+        const faqToEdit = faqs.find(f => f._id === faqId);
+        if (!faqToEdit) return;
 
-    // Ubah fungsi renderFaq bagian pembuatan elemen:
-    function renderFaq() {
-        const list = document.getElementById("faqList");
-        if (!list) return;
+        // Lock form tambah FAQ dan search
+        lockAddFaqForm();
+        lockFaqSearch();
 
-        list.innerHTML = "";
+        // Highlight FAQ yang sedang diedit
+        faqDiv.classList.add("editing");
+        activeFaqDiv = faqDiv;
+        const editBtn = faqDiv.querySelector(".editFaqBtn");
+        if (editBtn) editBtn.disabled = true;
 
-        if (faqs.length === 0) {
-            list.innerHTML = "<p>Belum ada FAQ.</p>";
-            return;
-        }
+        // Buat form edit
+        const editForm = document.createElement("div");
+        editForm.className = "faq-edit-form";
+        editForm.innerHTML = `
+            <h4>Edit FAQ</h4>
+            <input type="text" class="edit-question" value="${faqToEdit.question}" placeholder="Pertanyaan">
+            <textarea class="edit-answer" placeholder="Jawaban">${faqToEdit.answer}</textarea>
+            <select class="edit-category">
+                <option value="">Pilih Kategori</option>
+                ${categoriesCache.map(cat => 
+                    `<option value="${cat._id}" ${cat._id === faqToEdit.category_id ? 'selected' : ''}>${cat.name}</option>`
+                ).join('')}
+            </select>
+            <div style="margin-top:10px;">
+                <button class="save-edit-btn">Simpan</button>
+                <button class="cancel-edit-btn">Batal</button>
+            </div>
+            <hr>
+        `;
 
-        const filteredFaqs = faqs.filter(item => {
-            const matchText = item.question.toLowerCase().includes(faqSearchKeyword);
-            let matchCategory = true;
+        faqDiv.parentNode.insertBefore(editForm, faqDiv.nextSibling);
+        activeEditForm = editForm;
 
-            if (faqCategoryFilter === "none") {
-                matchCategory = !item.category_id;
-            } else if (faqCategoryFilter !== "all") {
-                matchCategory = item.category_id === faqCategoryFilter;
+        // Tambah event listeners untuk form edit
+        editForm.querySelector(".save-edit-btn").onclick = async () => {
+            const newQuestion = editForm.querySelector(".edit-question").value.trim();
+            const newAnswer = editForm.querySelector(".edit-answer").value.trim();
+            const newCategory = editForm.querySelector(".edit-category").value;
+
+            if (!newQuestion || !newAnswer || !newCategory) {
+                alert("Semua field harus diisi");
+                return;
             }
 
-            return matchText && matchCategory;
-        });
+            try {
+                await fetch(`/faq/${faqId}`, {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        question: newQuestion,
+                        answer: newAnswer,
+                        category_id: newCategory
+                    })
+                });
 
-        filteredFaqs.forEach((item) => {
-            const div = document.createElement("div");
-            // Simpan ID FAQ sebagai data attribute
-            div.setAttribute("data-faq-id", item._id);
-            
-            div.innerHTML = `
-                <b>${item.question}</b> <i>(${getCategoryName(item.category_id)})</i><br>
-                ${item.answer}<br>
-                <button class="editFaqBtn">Edit</button>
-                <button class="delFaqBtn">Hapus</button>
-                <hr>
-            `;
-            list.appendChild(div);
+                activeEditForm.remove();
+                activeEditForm = null;
+                unlockAddFaqForm();
+                unlockFaqSearch();
+                faqDiv.classList.remove("editing");
+                if (editBtn) editBtn.disabled = false;
+                activeFaqDiv = null;
 
-            // Ubah fungsi editFaq untuk menggunakan ID
-            div.querySelector(".editFaqBtn").onclick = () => {
-                const faqId = div.getAttribute("data-faq-id");
-                editFaqById(faqId, div);
-            };
-            
-            div.querySelector(".delFaqBtn").onclick = () => {
-                const faqId = div.getAttribute("data-faq-id");
-                deleteFaqById(faqId);
-            };
+                loadFaq();
+            } catch (error) {
+                alert("Gagal menyimpan perubahan: " + error.message);
+            }
+        };
+
+        editForm.querySelector(".cancel-edit-btn").onclick = () => {
+            activeEditForm.remove();
+            activeEditForm = null;
+            unlockAddFaqForm();
+            unlockFaqSearch();
+            faqDiv.classList.remove("editing");
+            if (editBtn) editBtn.disabled = false;
+            activeFaqDiv = null;
+        };
+
+        // Deteksi perubahan untuk konfirmasi
+        editForm.querySelectorAll(".edit-question, .edit-answer, .edit-category").forEach(input => {
+            input.addEventListener("input", () => {
+                isDirtyEdit = true;
+            });
         });
     }
 
-
-    async function deleteFaq(i) {
+    async function deleteFaqById(faqId) {
         if (!confirm("Hapus FAQ ini?")) return;
-        await fetch(`/faq/${faqs[i]._id}`, {
-            method: "DELETE",
-            credentials: "include"
-        });
-        loadFaq();
+        try {
+            await fetch(`/faq/${faqId}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+            loadFaq();
+        } catch (error) {
+            alert("Gagal menghapus FAQ: " + error.message);
+        }
+    }
+
+    function lockAddFaqForm() {
+        const questionInput = document.getElementById("question");
+        const answerInput = document.getElementById("answer");
+        const categorySelect = document.getElementById("faqCategory");
+        const saveBtn = document.getElementById("saveFaqBtn");
+        const faqForm = document.getElementById("faqForm");
+
+        if (questionInput) questionInput.disabled = true;
+        if (answerInput) answerInput.disabled = true;
+        if (categorySelect) categorySelect.disabled = true;
+        if (saveBtn) saveBtn.disabled = true;
+        if (faqForm) faqForm.style.opacity = "0.5";
+    }
+
+    function unlockAddFaqForm() {
+        const questionInput = document.getElementById("question");
+        const answerInput = document.getElementById("answer");
+        const categorySelect = document.getElementById("faqCategory");
+        const saveBtn = document.getElementById("saveFaqBtn");
+        const faqForm = document.getElementById("faqForm");
+
+        if (questionInput) questionInput.disabled = false;
+        if (answerInput) answerInput.disabled = false;
+        if (categorySelect) categorySelect.disabled = false;
+        if (saveBtn) saveBtn.disabled = false;
+        if (faqForm) faqForm.style.opacity = "1";
+    }
+
+    function lockFaqSearch() {
+        const searchInput = document.getElementById("faqSearchInput");
+        const categoryFilter = document.getElementById("faqCategoryFilter");
+        const searchBtn = document.getElementById("faqSearchBtn");
+        const resetBtn = document.getElementById("faqResetBtn");
+        const filterDiv = document.getElementById("faqFilter");
+
+        if (searchInput) searchInput.disabled = true;
+        if (categoryFilter) categoryFilter.disabled = true;
+        if (searchBtn) searchBtn.disabled = true;
+        if (resetBtn) resetBtn.disabled = true;
+        if (filterDiv) filterDiv.style.opacity = "0.5";
+    }
+
+    function unlockFaqSearch() {
+        const searchInput = document.getElementById("faqSearchInput");
+        const categoryFilter = document.getElementById("faqCategoryFilter");
+        const searchBtn = document.getElementById("faqSearchBtn");
+        const resetBtn = document.getElementById("faqResetBtn");
+        const filterDiv = document.getElementById("faqFilter");
+
+        if (searchInput) searchInput.disabled = false;
+        if (categoryFilter) categoryFilter.disabled = false;
+        if (searchBtn) searchBtn.disabled = false;
+        if (resetBtn) resetBtn.disabled = false;
+        if (filterDiv) filterDiv.style.opacity = "1";
     }
 
     document.getElementById("saveFaqBtn")?.addEventListener("click", saveFaq);
+    
     document.getElementById("faqSearchBtn")?.addEventListener("click", () => {
         const keywordInput = document.getElementById("faqSearchInput");
         const categorySelect = document.getElementById("faqCategoryFilter");
 
-        faqSearchKeyword = keywordInput.value.trim().toLowerCase();
-        faqCategoryFilter = categorySelect.value;
+        if (keywordInput) faqSearchKeyword = keywordInput.value.trim().toLowerCase();
+        if (categorySelect) faqCategoryFilter = categorySelect.value;
 
         renderFaq();
     });
+    
     document.getElementById("faqResetBtn")?.addEventListener("click", () => {
-        document.getElementById("faqSearchInput").value = "";
-        document.getElementById("faqCategoryFilter").value = "all";
+        const keywordInput = document.getElementById("faqSearchInput");
+        const categorySelect = document.getElementById("faqCategoryFilter");
+
+        if (keywordInput) keywordInput.value = "";
+        if (categorySelect) categorySelect.value = "all";
 
         faqSearchKeyword = "";
         faqCategoryFilter = "all";
@@ -440,16 +488,19 @@ document.addEventListener("DOMContentLoaded", () => {
         renderFaq();
     });
 
-
     /************** INTENTS **************/
     async function loadIntents() {
         const res = await fetch("/intents");
         const data = await res.json();
-        document.getElementById("intentsEditor").value = data.content || "";
+        const editor = document.getElementById("intentsEditor");
+        if (editor) editor.value = data.content || "";
     }
 
     document.getElementById("saveIntentsBtn")?.addEventListener("click", async () => {
-        const content = document.getElementById("intentsEditor").value;
+        const editor = document.getElementById("intentsEditor");
+        if (!editor) return;
+        
+        const content = editor.value;
         try {
             JSON.parse(content);
         } catch {
@@ -479,8 +530,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         users.forEach(u => {
             const li = document.createElement("li");
-            li.innerHTML = `${u.username} (${u.role}) <button>Hapus</button>`;
-            li.querySelector("button").onclick = async () => {
+            li.innerHTML = `${u.username} (${u.role}) <button class="delete-user-btn">Hapus</button>`;
+            list.appendChild(li);
+
+            li.querySelector(".delete-user-btn").onclick = async () => {
                 if (!confirm("Hapus user ini?")) return;
                 await fetch(`/admin/users/${u._id}`, {
                     method: "DELETE",
@@ -488,16 +541,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 });
                 loadUsers();
             };
-            list.appendChild(li);
         });
     }
 
     document.getElementById("addUserBtn")?.addEventListener("click", async () => {
-        const username = document.getElementById("newUsername").value.trim();
-        const email = document.getElementById("newEmail").value.trim();
-        const role = document.getElementById("newRole").value;
+        const usernameInput = document.getElementById("newUsername");
+        const emailInput = document.getElementById("newEmail");
+        const roleSelect = document.getElementById("newRole");
 
-        if (!username || !email) return alert("Username dan email wajib");
+        if (!usernameInput || !emailInput || !roleSelect) return;
+
+        const username = usernameInput.value.trim();
+        const email = emailInput.value.trim();
+        const role = roleSelect.value;
+
+        if (!username || !email) {
+            return alert("Username dan email wajib");
+        }
 
         const res = await fetch("/admin/users/add", {
             method: "POST",
@@ -509,9 +569,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
         if (data.success) {
             alert("Admin ditambahkan & email terkirim");
+            usernameInput.value = "";
+            emailInput.value = "";
+            roleSelect.value = "admin";
             loadUsers();
         } else {
-            alert(data.error);
+            alert(data.error || "Terjadi kesalahan");
         }
     });
 
