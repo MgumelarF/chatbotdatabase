@@ -2,6 +2,7 @@ import os
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from dotenv import load_dotenv
+import certifi
 
 # Load .env (untuk lokal)
 load_dotenv()
@@ -12,7 +13,12 @@ if not MONGO_URI:
     raise ValueError("❌ MONGO_URI belum diset di environment variable!")
 
 try:
-    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    client = MongoClient(
+        MONGO_URI,
+        tls=True,
+        tlsCAFile=certifi.where(),
+        serverSelectionTimeoutMS=5000
+    )
     client.admin.command('ping')
     print("✅ MongoDB connected successfully")
 except ConnectionFailure as e:
