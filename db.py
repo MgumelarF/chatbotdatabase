@@ -33,3 +33,12 @@ users_collection = db["users"]
 admin_logs_collection = db["admin_logs"]
 faq_collection = db["faq"]
 categories_collection = db["categories"]
+
+print("DB name:", db.name)
+print("Collections:", db.list_collection_names())
+
+docs = list(faq_collection.find())
+print("Jumlah FAQ:", len(docs))
+
+if docs:
+    print("Contoh 1 data FAQ:", docs[0])
