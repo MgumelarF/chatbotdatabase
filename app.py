@@ -18,9 +18,7 @@ import secrets
 import json
 import os
 import re
-
-from time import time
-import time
+import time  # PAKAI import module, bukan fungsi
 
 try:
     from db import users_collection, admin_logs_collection, faq_collection, categories_collection, db
@@ -52,7 +50,7 @@ from db import users_collection, admin_logs_collection
 
 
 # ========== ANTI BRUTE FORCE LOGIN =============
-from time import time
+# HAPUS: from time import time  # JANGAN import fungsi, pakai module
 
 # =========================
 # IMPORT CHATBOT ENGINE
@@ -69,7 +67,7 @@ def ip_protected():
 login_attempts = {}
 
 def too_many_attempts(ip):
-    now = time()
+    now = time.time()  # PAKAI time.time()
     attempts = login_attempts.get(ip, [])
     attempts = [t for t in attempts if now - t < 60]  # 1 menit
     attempts.append(now)

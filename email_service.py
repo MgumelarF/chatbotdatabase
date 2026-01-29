@@ -11,11 +11,10 @@ def send_activation_email(to_email, username, activation_link):
     
     if not resend.api_key:
         print("⚠️ RESEND_API_KEY not set, skipping email")
-        return False
+        return {"success": False, "error": "API Key not set"}
     
     try:
         # UNTUK TESTING: Kirim ke email verified kamu sendiri
-        # Tapi dalam subject tunjukkan untuk siapa
         testing_email = "fajafi217@gmail.com"  # Email verified kamu di Resend
         
         html_content = f"""
@@ -52,9 +51,7 @@ def send_activation_email(to_email, username, activation_link):
                               border-radius: 8px; 
                               font-weight: bold;
                               font-size: 16px;
-                              display: inline-block;
-                              box-shadow: 0 4px 6px rgba(76, 175, 80, 0.3);
-                              transition: transform 0.2s;">
+                              display: inline-block;">
                        🔓 Aktivasi Akun Sekarang
                     </a>
                 </div>
@@ -69,21 +66,6 @@ def send_activation_email(to_email, username, activation_link):
                            font-size: 13px; color: #d63384;">
                         {activation_link}
                     </code>
-                </div>
-                
-                <div style="background: #e8f5e9; padding: 15px; border-radius: 5px; 
-                           margin: 20px 0; border-left: 4px solid #4CAF50;">
-                    <p style="margin: 0; color: #2e7d32; font-size: 14px;">
-                        ⏰ <strong>Link berlaku 5 menit</strong><br>
-                        Setelah klik link, Anda akan diminta membuat password untuk akun.
-                    </p>
-                </div>
-                
-                <div style="border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px;">
-                    <p style="color: #6c757d; font-size: 12px; text-align: center;">
-                        Email ini dikirim otomatis. Jangan berikan link aktivasi kepada orang lain.<br>
-                        © {datetime.now().year} Kelurahan Cipinang Melayu
-                    </p>
                 </div>
             </div>
         </div>
@@ -101,7 +83,7 @@ def send_activation_email(to_email, username, activation_link):
         print(f"   Intended for: {to_email} (username: {username})")
         print(f"   Activation link: {activation_link}")
         
-        # Return dictionary bukan boolean
+        # Return dictionary
         return {
             "success": True,
             "testing_mode": True,
