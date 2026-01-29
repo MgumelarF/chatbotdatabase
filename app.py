@@ -19,6 +19,9 @@ import json
 import os
 import re
 
+from time import time
+import time
+
 try:
     from db import users_collection, admin_logs_collection, faq_collection, categories_collection, db
     print("✅ Database modules imported successfully")
@@ -34,7 +37,6 @@ except ImportError as e:
 from werkzeug.security import generate_password_hash, check_password_hash
 from auth import login_required, superadmin_required
 from datetime import timedelta
-from flask_mail import Mail, Message
 from flask_cors import CORS
 
 from chatbot_engine import get_response
@@ -94,20 +96,6 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.permanent_session_lifetime = timedelta(minutes=30)
 
 # =========================
-# MAIL CONFIG
-
-app.config.update(
-    MAIL_SERVER='smtp.gmail.com',
-    MAIL_PORT=587,
-    MAIL_USE_TLS=True,
-    MAIL_USE_SSL=False,
-    MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),  # pakai app password
-    MAIL_DEFAULT_SENDER='javensiasa123@gmail.com'
-)
-mail = Mail(app)
-
-# =========================
 # STATE CHATBOT (WAJIB)
 # =========================
 chat_state = {
@@ -123,17 +111,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FAQ_FILE = os.path.join(BASE_DIR, "faq.json")
 INTENTS_FILE = os.path.join(BASE_DIR, "intents.json")
 CATEGORIES_FILE = os.path.join(BASE_DIR, "categories.json")
-
-# =========================
-# TEST MAIL
-
-@app.route("/test-mail")
-def test_mail():
-    from app import mail  # pastikan import mail instance
-    msg = Message("Test Email", recipients=["tujuan@example.com"])
-    msg.body = "Ini test email"
-    mail.send(msg)
-    return "Terkirim!"
 
 # =========================
 # HELPER JSON
@@ -472,7 +449,7 @@ def add_admin_with_email():
     email = data.get("email", "").strip()
     role = data.get("role", "admin")
 
-    # === VALIDASI DARI VERSI LAMA (lebih lengkap) ===
+    # === VALIDASI ===
     if not username or not email:
         return jsonify({"error": "Username dan email wajib"}), 400
 
@@ -488,11 +465,9 @@ def add_admin_with_email():
     if users_collection.find_one({"email": email}):
         return jsonify({"error": "Email sudah terdaftar"}), 400
 
-    # === CREATE TOKEN (ambil dari kedua versi) ===
-    import secrets
-    import time
+    # === CREATE TOKEN ===
     activation_token = secrets.token_urlsafe(32)
-    expires_at = int(time.time()) + 300  # 5 menit dari versi lama
+    expires_at = int(time.time()) + 300  # 5 menit
 
     # === SAVE TO DATABASE ===
     users_collection.insert_one({
@@ -506,22 +481,29 @@ def add_admin_with_email():
     })
 
     # === BUILD ACTIVATION LINK ===
-    BASE_URL = os.environ.get("BASE_URL", "https://your-app.railway.app")
+    BASE_URL = os.environ.get("BASE_URL", "https://chatbotdatabase-production.up.railway.app")
     activation_link = f"{BASE_URL}/admin/activate?token={activation_token}"
 
-    # === KIRIM EMAIL DENGAN RESEND (dari versi baru) ===
+    # === KIRIM EMAIL DENGAN RESEND ===
     try:
-        # Import fungsi send_activation_email yang sudah dibuat
-        from email_service import send_activation_email
+        email_result = send_activation_email(email, username, activation_link)
         
-        email_sent = send_activation_email(email, username, activation_link)
-        
-        if email_sent:
-            log_admin_action("ADD_ADMIN", f"Menambahkan admin '{username}' ({email}) - Email terkirim")
-            return jsonify({
-                "success": True,
-                "message": f"Admin '{username}' ditambahkan. Email aktivasi dikirim ke {email}"
-            })
+        if email_result.get("success"):
+            if email_result.get("testing_mode"):
+                log_admin_action("ADD_ADMIN", f"Menambahkan admin '{username}' ({email}) - TEST MODE")
+                return jsonify({
+                    "success": True,
+                    "testing_mode": True,
+                    "message": f"Admin '{username}' ditambahkan.",
+                    "activation_link": activation_link,
+                    "note": f"Email dikirim ke admin utama (testing mode). Berikan link ini ke {username}: {activation_link}"
+                })
+            else:
+                log_admin_action("ADD_ADMIN", f"Menambahkan admin '{username}' ({email}) - Email terkirim")
+                return jsonify({
+                    "success": True,
+                    "message": f"Admin '{username}' ditambahkan. Email aktivasi dikirim ke {email}"
+                })
         else:
             # Fallback jika email gagal
             log_admin_action("ADD_ADMIN", f"Menambahkan admin '{username}' ({email}) - Email GAGAL")
@@ -693,6 +675,19 @@ def get_logs():
         l["_id"] = str(l["_id"])
 
     return jsonify(logs)
+
+@app.route("/debug-email")
+def debug_email():
+    """Test email configuration"""
+    resend_key = os.environ.get("RESEND_API_KEY")
+    base_url = os.environ.get("BASE_URL")
+    
+    return jsonify({
+        "RESEND_API_KEY_set": bool(resend_key),
+        "RESEND_API_key_length": len(resend_key) if resend_key else 0,
+        "BASE_URL": base_url,
+        "testing_email": "fajafi217@gmail.com"
+    })
 
 # =========================
 # INIT FILE & RUN
