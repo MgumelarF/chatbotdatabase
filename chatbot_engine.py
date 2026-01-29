@@ -27,57 +27,83 @@ KEYWORD_BARU = ["baru", "bikin", "pertama"]
 KEYWORD_CETAK_ULANG = ["hilang", "rusak", "cetak ulang"]
 
 # =========================
+# GLOBAL VARIABLES
+# =========================
+client = None
+db = None
+faq_collection = None
+
+# =========================
 # CONNECT DB DENGAN RETRY LOGIC
 # =========================
 def connect_to_mongo():
-    max_retries = 3
-    for attempt in range(max_retries):
+    """
+    Connect to MongoDB - langsung gunakan client dari db.py
+    """
+    global client, db, faq_collection
+    
+    try:
+        # Import client dari db.py jika tersedia
+        from db import client as db_client
+        client = db_client
+        
+        # Test connection
+        client.admin.command('ping')
+        print("✅ Connected to MongoDB from chatbot_engine")
+        
+    except ImportError:
+        # Jika db.py tidak ada, buat koneksi baru
+        print("⚠️ db.py not found, creating new MongoDB connection...")
         try:
             client = MongoClient(
                 MONGO_URI,
-                serverSelectionTimeoutMS=10000,
-                connectTimeoutMS=10000,
-                socketTimeoutMS=10000
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=30000,
+                tls=False  # Nonaktifkan TLS untuk lokal
             )
-            # Test connection
             client.admin.command('ping')
-            print("✅ MongoDB connected successfully")
-            return client
+            print("✅ New MongoDB connection created")
         except Exception as e:
-            print(f"❌ MongoDB connection attempt {attempt + 1}/{max_retries} failed: {str(e)[:100]}")
-            if attempt < max_retries - 1:
-                time.sleep(2)  # Tunggu 2 detik sebelum retry
-            else:
-                print("⚠️ WARNING: Could not connect to MongoDB. Some features may not work.")
-                return None
-
-client = connect_to_mongo()
-
-# Jika koneksi gagal, buat dummy client untuk mencegah crash
-if client is None:
-    class DummyMongoClient:
-        def __getitem__(self, name):
-            class DummyCollection:
-                def find(self, *args, **kwargs):
-                    return []
-                def find_one(self, *args, **kwargs):
-                    return None
-                def insert_one(self, *args, **kwargs):
-                    return None
-                def update_one(self, *args, **kwargs):
-                    return None
-                def delete_one(self, *args, **kwargs):
-                    return None
-                def count_documents(self, *args, **kwargs):
-                    return 0
-            return DummyCollection()
+            print(f"❌ New connection failed: {e}")
+            client = None
     
-    db = DummyMongoClient()
-    print("⚠️ Using dummy MongoDB client (offline mode)")
-else:
-    db = client[DB_NAME]
+    # Setup database dan collection
+    if client:
+        try:
+            db = client[DB_NAME]
+            faq_collection = db[FAQ_COLLECTION]
+            print(f"✅ Database '{DB_NAME}' and collection '{FAQ_COLLECTION}' ready")
+        except Exception as e:
+            print(f"❌ Failed to setup database: {e}")
+    else:
+        # Buat dummy client untuk offline mode
+        print("⚠️ Using dummy MongoDB client (offline mode)")
+        class DummyMongoClient:
+            def __getitem__(self, name):
+                class DummyCollection:
+                    def find(self, *args, **kwargs):
+                        return []
+                    def find_one(self, *args, **kwargs):
+                        return None
+                    def insert_one(self, *args, **kwargs):
+                        return type('obj', (object,), {'inserted_id': 'dummy_id'})
+                    def update_one(self, *args, **kwargs):
+                        return type('obj', (object,), {'matched_count': 0})
+                    def delete_one(self, *args, **kwargs):
+                        return type('obj', (object,), {'deleted_count': 0})
+                    def count_documents(self, *args, **kwargs):
+                        return 0
+                return DummyCollection()
+        
+        client = DummyMongoClient()
+        db = client[DB_NAME]
+        faq_collection = db[FAQ_COLLECTION]
+    
+    return client
 
-faq_collection = db[FAQ_COLLECTION]
+# Panggil fungsi koneksi saat module di-load
+connect_to_mongo()
 
 # =========================
 # LOAD MODEL - TF-IDF RINGAN
@@ -114,13 +140,23 @@ faq_embeddings = None
 def load_faq():
     global faq_data, faq_embeddings
     print("📥 Loading FAQ from MongoDB...")
-
-    faq_data = list(faq_collection.find({}))
+    
+    try:
+        faq_data = list(faq_collection.find({}))
+    except Exception as e:
+        print(f"❌ Failed to load FAQ from collection: {e}")
+        faq_data = []
 
     if not faq_data:
         faq_embeddings = None
         print("⚠️ FAQ kosong")
-        return
+        # Tambahkan data dummy untuk testing jika kosong
+        faq_data = [
+            {"_id": "1", "question": "cara buat ktp", "answer": "Untuk membuat KTP baru, bawa KK asli, surat pengantar RT/RW, dan fotokopi akta kelahiran ke kelurahan.", "category_id": "ktp"},
+            {"_id": "2", "question": "syarat ktp baru", "answer": "Syarat KTP baru: KK asli, surat pengantar RT/RW, fotokopi akta kelahiran, pas foto ukuran 3x4.", "category_id": "ktp"},
+            {"_id": "3", "question": "cetak ulang ktp", "answer": "Untuk cetak ulang KTP yang hilang/rusak: bawa KK asli, surat kehilangan dari kepolisian, dan bayar biaya administrasi.", "category_id": "ktp"}
+        ]
+        print("✅ Using dummy FAQ data for testing")
 
     # Preprocess questions
     questions = [preprocess_text(f["question"]) for f in faq_data]
@@ -128,7 +164,7 @@ def load_faq():
     try:
         # Fit and transform FAQ questions
         faq_embeddings = vectorizer.fit_transform(questions).toarray()
-        print(f"✅ {len(faq_data)} FAQ loaded")
+        print(f"✅ {len(faq_data)} FAQ loaded and vectorized")
         
     except Exception as e:
         print(f"❌ Failed to encode FAQ: {e}")
@@ -166,8 +202,8 @@ def get_response(user_text: str) -> str:
     if not user_text.strip():
         return "Silakan ketik pertanyaan Anda."
 
-    if faq_embeddings is None:
-        return "Data FAQ belum tersedia."
+    if faq_embeddings is None or len(faq_data) == 0:
+        return "Data FAQ belum tersedia. Coba lagi nanti."
 
     try:
         # Preprocess user input
@@ -180,7 +216,7 @@ def get_response(user_text: str) -> str:
         sims = cosine_similarity([user_vec], faq_embeddings)[0]
         
         # Debug info (opsional)
-        # print(f"Max similarity: {max(sims):.3f}")
+        print(f"📊 Max similarity: {max(sims):.3f}")
         
         # Apply threshold and keyword adjustment - LOGIKA SAMA
         scored = []
@@ -193,7 +229,7 @@ def get_response(user_text: str) -> str:
             scored.append((idx, final_score))
 
         if not scored:
-            return "Maaf, saya belum menemukan jawaban yang sesuai."
+            return "Maaf, saya belum menemukan jawaban yang sesuai.\n\nCoba tanya tentang:\n• Cara membuat KTP\n• Syarat KTP baru\n• Cetak ulang KTP\n• Layanan kelurahan"
 
         # Sort by score
         scored.sort(key=lambda x: x[1], reverse=True)
@@ -247,3 +283,8 @@ if __name__ == "__main__":
         "Bagaimana cara membuat KTP?",
         "Syarat buat KTP"
     ]
+    
+    for question in test_questions:
+        print(f"\nQ: {question}")
+        response = get_response(question)
+        print(f"A: {response}")

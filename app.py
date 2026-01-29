@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 import os
+# Di bagian imports
+from email_service import send_activation_email
 
 load_dotenv()
 
@@ -470,11 +472,12 @@ def add_admin_with_email():
     email = data.get("email", "").strip()
     role = data.get("role", "admin")
 
+    # === VALIDASI DARI VERSI LAMA (lebih lengkap) ===
     if not username or not email:
-        return jsonify({"error": "Harap masukkan username dan email yang jelas"}), 400
+        return jsonify({"error": "Username dan email wajib"}), 400
 
     if not re.match(r"^[a-zA-Z0-9_]{3,20}$", username):
-        return jsonify({"error": "Username tidak valid"}), 400
+        return jsonify({"error": "Username tidak valid (3-20 karakter, hanya huruf/angka/_)"}), 400
 
     if not re.match(r"^[^@]+@[^@]+\.[^@]+$", email):
         return jsonify({"error": "Email tidak valid"}), 400
@@ -485,9 +488,13 @@ def add_admin_with_email():
     if users_collection.find_one({"email": email}):
         return jsonify({"error": "Email sudah terdaftar"}), 400
 
+    # === CREATE TOKEN (ambil dari kedua versi) ===
+    import secrets
+    import time
     activation_token = secrets.token_urlsafe(32)
-    expires_at = int(time()) + 300  # 5 menit
+    expires_at = int(time.time()) + 300  # 5 menit dari versi lama
 
+    # === SAVE TO DATABASE ===
     users_collection.insert_one({
         "username": username,
         "email": email,
@@ -498,24 +505,43 @@ def add_admin_with_email():
         "created_at": datetime.utcnow()
     })
 
-    BASE_URL = os.environ.get("BASE_URL", "http://localhost:5000")
+    # === BUILD ACTIVATION LINK ===
+    BASE_URL = os.environ.get("BASE_URL", "https://your-app.railway.app")
     activation_link = f"{BASE_URL}/admin/activate?token={activation_token}"
 
-    msg = Message(
-        subject="Aktivasi Admin Baru",
-        recipients=[email],
-        body=f"Klik link ini untuk aktivasi akun: {activation_link}"
-    )
-
+    # === KIRIM EMAIL DENGAN RESEND (dari versi baru) ===
     try:
-        mail.send(msg)
+        # Import fungsi send_activation_email yang sudah dibuat
+        from email_service import send_activation_email
+        
+        email_sent = send_activation_email(email, username, activation_link)
+        
+        if email_sent:
+            log_admin_action("ADD_ADMIN", f"Menambahkan admin '{username}' ({email}) - Email terkirim")
+            return jsonify({
+                "success": True,
+                "message": f"Admin '{username}' ditambahkan. Email aktivasi dikirim ke {email}"
+            })
+        else:
+            # Fallback jika email gagal
+            log_admin_action("ADD_ADMIN", f"Menambahkan admin '{username}' ({email}) - Email GAGAL")
+            return jsonify({
+                "success": True,
+                "message": f"Admin '{username}' ditambahkan. Email gagal dikirim.",
+                "activation_link": activation_link,
+                "note": "Berikan link ini ke user untuk aktivasi manual"
+            })
+            
     except Exception as e:
-        return jsonify({"error": f"Gagal mengirim email: {str(e)}"}), 500
-
-    log_admin_action("ADD_ADMIN", f"Menambahkan admin '{username}' ({email})")
-
-    return jsonify({"success": True})
-
+        # Jika ada error dalam proses email
+        log_admin_action("ADD_ADMIN_ERROR", f"Error saat menambah admin: {str(e)}")
+        return jsonify({
+            "success": True,  # Admin tetap berhasil ditambahkan ke DB
+            "message": f"Admin '{username}' ditambahkan ke database.",
+            "activation_link": activation_link,
+            "error": f"Email tidak terkirim: {str(e)}",
+            "note": "Gunakan link di atas untuk aktivasi manual"
+        })
 
 # =========================
 # activate admin account
@@ -523,6 +549,7 @@ def add_admin_with_email():
 @app.route("/admin/activate", methods=["GET", "POST"])
 def activate_admin():
     token = request.args.get("token")
+    
     if not token:
         return "Token tidak ditemukan", 400
 
@@ -532,21 +559,27 @@ def activate_admin():
     })
 
     if not user:
-        return "Token tidak valid", 400
+        return "Token tidak valid atau sudah digunakan", 400
 
     expires_at = user.get("activation_expires_at")
-
-    if not expires_at:
-        return "Token tidak valid (expired metadata)", 400
-
-    if time() > expires_at:
-        return "Token sudah kadaluarsa", 400
+    
+    if expires_at and time.time() > expires_at:
+        return "Token sudah kadaluarsa (lebih dari 5 menit)", 400
     
     if request.method == "POST":
         password = request.form.get("password")
-        if not password:
-            return "Password wajib diisi", 400
+        confirm = request.form.get("confirm_password")
+        
+        if not password or not confirm:
+            return "Password dan konfirmasi wajib diisi", 400
+            
+        if password != confirm:
+            return "Password tidak cocok", 400
+            
+        if len(password) < 6:
+            return "Password minimal 6 karakter", 400
 
+        # Update user
         users_collection.update_one(
             {"_id": user["_id"]},
             {
@@ -561,15 +594,36 @@ def activate_admin():
                 }
             }
         )
-        return "Password berhasil dibuat. Akun aktif!"
+        
+        log_admin_action("ACTIVATE_ACCOUNT", f"Akun {user['username']} diaktifkan")
+        
+        return """
+        <h2 style="color: green;">✅ Akun Berhasil Diaktifkan!</h2>
+        <p>Password Anda telah dibuat. Sekarang Anda bisa login.</p>
+        <p><a href="/admin/login">Klik di sini untuk login</a></p>
+        """
     
-    # GET request → tampilkan form set password
+    # GET request → tampilkan form HTML
     return f"""
-    <h2>Buat Password Baru untuk {user['username']}</h2>
-    <form method='post'>
-        <input type='password' name='password' placeholder='Password baru'>
-        <button type='submit'>Buat Password</button>
-    </form>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Aktivasi Akun</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 40px; max-width: 500px; margin: auto; }}
+            input {{ width: 100%; padding: 10px; margin: 10px 0; }}
+            button {{ background: #4CAF50; color: white; padding: 12px; border: none; width: 100%; cursor: pointer; }}
+        </style>
+    </head>
+    <body>
+        <h2>Buat Password untuk {user['username']}</h2>
+        <form method='post'>
+            <input type='password' name='password' placeholder='Password baru' required>
+            <input type='password' name='confirm_password' placeholder='Konfirmasi password' required>
+            <button type='submit'>Aktivasi Akun</button>
+        </form>
+    </body>
+    </html>
     """
 
 # ========== endpoint ==========
