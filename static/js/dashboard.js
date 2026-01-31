@@ -98,32 +98,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
             tr.querySelector(".delCatBtn").onclick = async () => {
                 if (!confirm("menghapus kategori menyebabkan hilangnya kategori pada faq, apakah anda yakin menghapus kategori ini?")) return;
-                
-                try {
-                    const response = await fetch(`/categories/${cat._id}`, {
-                        method: "DELETE",
-                        credentials: "include"
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    // 🔥 PERBARUI SEMUA DATA SEKALIGUS
-                    await Promise.all([
-                        loadCategories(),
-                        loadFaq(),
-                        loadCategoryOptions()
-                    ]);
-                    
-                } catch (error) {
-                    console.error("Error deleting category:", error);
-                    alert("Gagal menghapus kategori: " + error.message);
-                }
+                await fetch(`/categories/${cat._id}`, {
+                    method: "DELETE",
+                    credentials: "include"
+                });
+                loadCategories();
+                loadFaq();
             };
         });
 
-        // 🔥 PASTIKAN cache kategori di-update
         loadCategoryOptions();
     }
 
@@ -254,14 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getCategoryName(id) {
-        if (!id || id === "null" || id === "undefined") return "-";  // 🔥 Handle semua kemungkinan
-        
-        // Pastikan categoriesCache sudah terisi
-        if (!categoriesCache || categoriesCache.length === 0) {
-            console.warn("Categories cache is empty");
-            return "-";
-        }
-        
+        if (!id) return "-";  //
         const cat = categoriesCache.find(c => c._id === id);
         return cat ? cat.name : "-";
     }
@@ -282,8 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
             let matchCategory = true;
 
             if (faqCategoryFilter === "none") {
-                // 🔥 PERBAIKI: Periksa null, undefined, atau string kosong
-                matchCategory = !item.category_id || item.category_id === "" || item.category_id === "null" || item.category_id === "undefined";
+                matchCategory = !item.category_id;
             } else if (faqCategoryFilter !== "all") {
                 matchCategory = item.category_id === faqCategoryFilter;
             }
@@ -330,7 +305,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Dapatkan data FAQ yang akan diedit
         const faqToEdit = faqs.find(f => f._id === faqId);
-        if (!faqToEdit) return;
+        if (!faqToEdit) {
+             alert("FAQ tidak ditemukan. Mungkin sudah dihapus.");
+             return;
+        }
 
         // Lock form tambah FAQ dan search
         lockAddFaqForm();
@@ -344,27 +322,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Buat form edit
         const editForm = document.createElement("div");
-            editForm.className = "faq-edit-form";
-            
-            // 🔥 PERBAIKI: Pastikan category_id yang null ditangani dengan benar
-            const currentCategoryId = faqToEdit.category_id || "";
-            
-            editForm.innerHTML = `
-                <h4>Edit FAQ</h4>
-                <input type="text" class="edit-question" value="${faqToEdit.question}" placeholder="Pertanyaan">
-                <textarea class="edit-answer" placeholder="Jawaban">${faqToEdit.answer}</textarea>
-                <select class="edit-category">
-                    <option value="">Pilih Kategori (Tanpa Kategori)</option>
-                    ${categoriesCache.map(cat => 
-                        `<option value="${cat._id}" ${cat._id === currentCategoryId ? 'selected' : ''}>${cat.name}</option>`
-                    ).join('')}
-                </select>
-                <div style="margin-top:10px;">
-                    <button class="save-edit-btn">Simpan</button>
-                    <button class="cancel-edit-btn">Batal</button>
-                </div>
-                <hr>
-            `;
+        editForm.className = "faq-edit-form";
+        editForm.innerHTML = `
+            <h4>Edit FAQ</h4>
+            <input type="text" class="edit-question" value="${faqToEdit.question}" placeholder="Pertanyaan">
+            <textarea class="edit-answer" placeholder="Jawaban">${faqToEdit.answer}</textarea>
+            <select class="edit-category">
+                <option value="">Pilih Kategori</option>
+                ${categoriesCache.map(cat => 
+                    `<option value="${cat._id}" ${cat._id === faqToEdit.category_id ? 'selected' : ''}>${cat.name}</option>`
+                ).join('')}
+            </select>
+            <div style="margin-top:10px;">
+                <button class="save-edit-btn">Simpan</button>
+                <button class="cancel-edit-btn">Batal</button>
+            </div>
+            <hr>
+        `;
 
         faqDiv.parentNode.insertBefore(editForm, faqDiv.nextSibling);
         activeEditForm = editForm;
@@ -426,12 +400,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function deleteFaqById(faqId) {
         if (!confirm("Hapus FAQ ini?")) return;
+        
         try {
+            // 🔥 CEK APAKAH FAQ YANG AKAN DIHAPUS SEDANG DALAM MODE EDIT
+            const isDeletingEditedFaq = activeFaqDiv && 
+                activeFaqDiv.getAttribute("data-faq-id") === faqId;
+            
+            // 🔥 HAPUS FORM EDIT JIKA FAQ YANG DIHAPUS SAMA DENGAN YANG SEDANG DEDIT
+            if (isDeletingEditedFaq && activeEditForm) {
+                activeEditForm.remove();
+                activeEditForm = null;
+                
+                // 🔥 UNLOCK FORM TAMBAH & SEARCH
+                unlockAddFaqForm();
+                unlockFaqSearch();
+                
+                // 🔥 RESET STATE EDIT
+                if (activeFaqDiv) {
+                    activeFaqDiv.classList.remove("editing");
+                    const editBtn = activeFaqDiv.querySelector(".editFaqBtn");
+                    if (editBtn) editBtn.disabled = false;
+                    activeFaqDiv = null;
+                }
+                
+                isDirtyEdit = false;
+            }
+            
+            // 🔥 HAPUS FAQ DARI SERVER
             await fetch(`/faq/${faqId}`, {
                 method: "DELETE",
                 credentials: "include"
             });
-            loadFaq();
+            
+            // 🔥 LOAD ULANG FAQ
+            await loadFaq();
+            
         } catch (error) {
             alert("Gagal menghapus FAQ: " + error.message);
         }
@@ -449,6 +452,24 @@ document.addEventListener("DOMContentLoaded", () => {
         if (categorySelect) categorySelect.disabled = true;
         if (saveBtn) saveBtn.disabled = true;
         if (faqForm) faqForm.style.opacity = "0.5";
+    }
+
+    function resetEditForm() {
+        if (activeEditForm) {
+            activeEditForm.remove();
+            activeEditForm = null;
+        }
+        
+        if (activeFaqDiv) {
+            activeFaqDiv.classList.remove("editing");
+            const editBtn = activeFaqDiv.querySelector(".editFaqBtn");
+            if (editBtn) editBtn.disabled = false;
+            activeFaqDiv = null;
+        }
+        
+        isDirtyEdit = false;
+        unlockAddFaqForm();
+        unlockFaqSearch();
     }
 
     function unlockAddFaqForm() {

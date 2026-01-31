@@ -339,13 +339,11 @@ def delete_category(id):
     if not cat:
         return jsonify({"error": "Kategori tidak ditemukan"}), 404
     
-    # 🔥 UPDATE FAQ YANG TERKAIT: Set category_id menjadi null (None di Python)
-    result = faq_collection.update_many(
+    # 🔥 UPDATE FAQ YANG TERKAIT: Set category_id menjadi kosong
+    faq_collection.update_many(
         {"category_id": id},
-        {"$set": {"category_id": None}}  # 🔥 GUNAKAN None bukan string kosong
+        {"$set": {"category_id": None}}
     )
-    
-    print(f"Updated {result.modified_count} FAQs to have null category_id")
     
     # Hapus kategori
     categories_collection.delete_one({"_id": ObjectId(id)})
@@ -357,10 +355,7 @@ def delete_category(id):
         generate_intents_from_db()
         refresh_chatbot()
 
-    return jsonify({
-        "success": True,
-        "updated_faqs": result.modified_count
-    })
+    return jsonify({"success": True})
 
 # =========================
 # INTENTS API (DYNAMIC RELOAD)
