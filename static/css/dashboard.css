@@ -246,6 +246,13 @@ textarea {
     color: #28a745;
     font-weight: bold;
 }
+.backup-btn.logs-backup {
+    background: #17a2b8; /* Warna cyan untuk logs */
+}
+
+.backup-btn.logs-backup:hover {
+    background: #138496;
+}
 
 /* =========================
    BUTTON

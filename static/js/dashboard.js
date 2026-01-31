@@ -633,7 +633,6 @@ document.addEventListener("DOMContentLoaded", () => {
     /************** BACKUP FUNCTIONS **************/
     async function downloadBackup(url, defaultFilename) {
         try {
-            // 🔥 TAMBAHKAN: Loading sederhana tanpa disable button
             const originalTitle = document.title;
             document.title = "⏳ Membuat backup...";
             
@@ -683,7 +682,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Cleanup
             window.URL.revokeObjectURL(blobUrl);
             
-            // 🔥 TAMBAHKAN: Notifikasi sukses yang lebih informatif
+            // Notify success
             setTimeout(() => {
                 alert(`✅ Backup berhasil didownload!\n\nFile: ${filename}\nSize: ${(blob.size / 1024).toFixed(2)} KB`);
             }, 300);
@@ -692,7 +691,7 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error('Download error:', error);
             alert(`❌ Gagal membuat backup\n\nError: ${error.message}\n\nPastikan Anda masih login dan coba lagi.`);
         } finally {
-            // 🔥 RESET: Kembalikan title
+            // Restore original title
             document.title = originalTitle;
         }
     }
@@ -704,6 +703,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("backupFaqBtn")?.addEventListener("click", () => {
         downloadBackup("/backup/faq", "faq_backup.json");
+    });
+
+    document.getElementById("backupLogsBtn")?.addEventListener("click", () => {
+        downloadBackup("/backup/logs", "admin_logs_backup.json");
     });
 
     document.getElementById("backupAllBtn")?.addEventListener("click", () => {

@@ -141,7 +141,7 @@ def log_admin_action(action, detail):
             "action": action,
             "detail": detail,
             "ip": request.remote_addr,
-            "timestamp": datetime.utcnow()
+            "timestamp": datetime.now(datetime.timezone.utc)
         })
     except Exception as e:
         print("LOG ERROR:", e)
@@ -229,19 +229,29 @@ def add_faq():
     if not question or not answer:
         return jsonify({"error": "Question dan answer wajib"}), 400
 
-    faq_collection.insert_one({
+    result = faq_collection.insert_one({
         "question": question,
         "answer": answer,
         "category_id": category_id
     })
-
-    log_admin_action("ADD_FAQ", f"Menambahkan FAQ: {question}")
+    
+    # 🔥 LOG DENGAN ID BARU
+    faq_id = str(result.inserted_id)
+    
+    # Cari nama kategori
+    category_name = "Tanpa Kategori"
+    if category_id:
+        category = categories_collection.find_one({"_id": ObjectId(category_id)})
+        if category:
+            category_name = category.get("name", "Unknown")
+    
+    log_admin_action("ADD_FAQ", f"Menambahkan FAQ: '{question[:100]}...' (Kategori: {category_name}, ID: {faq_id})")
 
     # 🔥 Sinkronisasi AI
     generate_intents_from_db()
     refresh_chatbot()
 
-    return jsonify({"success": True})
+    return jsonify({"success": True, "id": faq_id})
 
 @app.route("/faq/<id>", methods=["PUT"])
 def edit_faq(id):
@@ -249,7 +259,10 @@ def edit_faq(id):
         return jsonify({"error": "Unauthorized"}), 403
 
     data = request.get_json(force=True)
-
+    
+    # 🔥 AMBIL DATA LAMA SEBELUM DIUPDATE
+    old_faq = faq_collection.find_one({"_id": ObjectId(id)})
+    
     faq_collection.update_one(
         {"_id": ObjectId(id)},
         {"$set": {
@@ -259,7 +272,21 @@ def edit_faq(id):
         }}
     )
 
-    log_admin_action("EDIT_FAQ", f"Edit FAQ ID {id}")
+    # 🔥 LOG DETAIL: Bandingkan perubahan
+    detail = f"Edit FAQ ID {id}"
+    if old_faq:
+        changes = []
+        if old_faq.get("question") != data.get("question"):
+            changes.append(f"pertanyaan: '{old_faq.get('question')[:50]}...' → '{data.get('question')[:50]}...'")
+        if old_faq.get("answer") != data.get("answer"):
+            changes.append("jawaban diupdate")
+        if old_faq.get("category_id") != data.get("category_id"):
+            changes.append("kategori diubah")
+        
+        if changes:
+            detail = f"Edit FAQ: {', '.join(changes)}"
+    
+    log_admin_action("EDIT_FAQ", detail)
 
     generate_intents_from_db()
     refresh_chatbot()
@@ -276,7 +303,8 @@ def delete_faq(id):
     faq_collection.delete_one({"_id": ObjectId(id)})
 
     if faq:
-        log_admin_action("DELETE_FAQ", f"Hapus FAQ: {faq['question']}")
+        # 🔥 LOG DETAIL: Tampilkan pertanyaan yang dihapus
+        log_admin_action("DELETE_FAQ", f"Hapus FAQ: '{faq['question'][:100]}...' (ID: {id})")
 
     generate_intents_from_db()
     refresh_chatbot()
@@ -306,11 +334,13 @@ def add_category():
     if not name:
         return jsonify({"error": "Nama kategori kosong"}), 400
 
-    categories_collection.insert_one({"name": name})
+    result = categories_collection.insert_one({"name": name})
+    
+    # 🔥 LOG DENGAN ID KATEGORI BARU
+    category_id = str(result.inserted_id)
+    log_admin_action("ADD_CATEGORY", f"Tambah kategori: '{name}' (ID: {category_id})")
 
-    log_admin_action("ADD_CATEGORY", f"Tambah kategori: {name}")
-
-    return jsonify({"success": True})
+    return jsonify({"success": True, "id": category_id})
 
 
 @app.route("/categories/<id>", methods=["PUT"])
@@ -319,13 +349,21 @@ def edit_category(id):
         return jsonify({"error": "Unauthorized"}), 403
 
     data = request.get_json(force=True)
-
+    
+    # 🔥 AMBIL DATA LAMA
+    old_category = categories_collection.find_one({"_id": ObjectId(id)})
+    
     categories_collection.update_one(
         {"_id": ObjectId(id)},
         {"$set": {"name": data.get("name")}}
     )
 
-    log_admin_action("EDIT_CATEGORY", f"Edit kategori ID {id}")
+    # 🔥 LOG PERUBAHAN
+    detail = f"Edit kategori ID {id}"
+    if old_category and old_category.get("name") != data.get("name"):
+        detail = f"Edit kategori: '{old_category.get('name')}' → '{data.get('name')}'"
+    
+    log_admin_action("EDIT_CATEGORY", detail)
 
     return jsonify({"success": True})
 
@@ -339,8 +377,11 @@ def delete_category(id):
     if not cat:
         return jsonify({"error": "Kategori tidak ditemukan"}), 404
     
-    # 🔥 UPDATE FAQ YANG TERKAIT: Set category_id menjadi kosong
-    faq_collection.update_many(
+    # 🔥 HITUNG FAQ YANG AKAN TERPENGARUH
+    affected_faqs = faq_collection.count_documents({"category_id": id})
+    
+    # 🔥 UPDATE FAQ YANG TERKAIT
+    result = faq_collection.update_many(
         {"category_id": id},
         {"$set": {"category_id": None}}
     )
@@ -349,13 +390,19 @@ def delete_category(id):
     categories_collection.delete_one({"_id": ObjectId(id)})
     
     if cat:
-        log_admin_action("DELETE_CATEGORY", f"Hapus kategori: {cat['name']}")
+        # 🔥 LOG DETAIL: Jumlah FAQ yang terpengaruh
+        detail = f"Hapus kategori: '{cat['name']}' (ID: {id}) - {affected_faqs} FAQ kehilangan kategori"
+        log_admin_action("DELETE_CATEGORY", detail)
         
         # 🔥 Sinkronisasi AI setelah update FAQ
         generate_intents_from_db()
         refresh_chatbot()
 
-    return jsonify({"success": True})
+    return jsonify({
+        "success": True,
+        "affected_faqs": affected_faqs,
+        "updated_faqs": result.modified_count
+    })
 
 # =========================
 # INTENTS API (DYNAMIC RELOAD)
@@ -489,7 +536,7 @@ def add_admin_with_email():
         "activation_token": activation_token,
         "activation_expires_at": expires_at,
         "status": "pending",
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(datetime.timezone.utc)
     })
 
     # === BUILD ACTIVATION LINK ===
@@ -580,7 +627,7 @@ def activate_admin():
                 "$set": {
                     "password": generate_password_hash(password),
                     "status": "active",
-                    "updated_at": datetime.utcnow()
+                    "updated_at": datetime.now(datetime.timezone.utc)
                 },
                 "$unset": {
                     "activation_token": "",
@@ -759,6 +806,101 @@ def backup_all():
         
     except Exception as e:
         return jsonify({"error": f"Gagal membuat backup: {str(e)}"}), 500
+    
+# =========================
+# BACKUP ADMIN LOGS (Tambahkan endpoint ini)
+# =========================
+@app.route("/backup/logs", methods=["GET"])
+@login_required
+def backup_logs():
+    try:
+        # Ambil data logs dari database
+        logs = list(admin_logs_collection.find().sort("timestamp", -1))
+        
+        # Format data
+        formatted_logs = []
+        for log in logs:
+            formatted_log = {
+                "_id": str(log["_id"]),
+                "username": log.get("username", ""),
+                "role": log.get("role", ""),
+                "action": log.get("action", ""),
+                "detail": log.get("detail", ""),
+                "ip": log.get("ip", ""),
+                "timestamp": log.get("timestamp", "").isoformat() if log.get("timestamp") else ""
+            }
+            formatted_logs.append(formatted_log)
+        
+        # Buat timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Konversi ke JSON string
+        json_data = json.dumps(formatted_logs, indent=2, ensure_ascii=False)
+        
+        # Buat response untuk download
+        response = make_response(json_data)
+        response.headers["Content-Type"] = "application/json"
+        response.headers["Content-Disposition"] = f"attachment; filename=admin_logs_backup_{timestamp}.json"
+        
+        log_admin_action("BACKUP_LOGS", "Download backup admin logs")
+        
+        return response
+        
+    except Exception as e:
+        return jsonify({"error": f"Gagal membuat backup logs: {str(e)}"}), 500
+
+# =========================
+# UPDATE INTENTS - Tambahkan logging yang lebih detail
+# =========================
+@app.route("/intents/update", methods=["POST"])
+def update_intents():
+    if not session.get("user"):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(force=True)
+    content = data.get("content")
+
+    if not content:
+        return jsonify({"error": "Konten kosong"}), 400
+
+    try:
+        # Validasi JSON
+        json.loads(content)
+        
+        with open(INTENTS_FILE, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        # Reload intents
+        try:
+            from utils.reload_model import reload_intents
+            reload_intents()
+        except:
+            pass
+
+        # 🔥 LOG DETAIL: Hitung berapa banyak intents yang diupdate
+        intent_data = json.loads(content)
+        intent_count = len(intent_data.get("intents", [])) if isinstance(intent_data, dict) else 0
+        
+        log_admin_action(
+            "UPDATE_INTENTS",
+            f"Memperbarui file intents.json dengan {intent_count} intents"
+        )
+
+        return jsonify({
+            "success": True,
+            "message": f"Intents diperbarui ({intent_count} intents) & chatbot langsung aktif"
+        })
+
+    except json.JSONDecodeError as e:
+        log_admin_action("UPDATE_INTENTS_FAILED", "JSON tidak valid")
+        return jsonify({"error": "JSON tidak valid"}), 400
+    except Exception as e:
+        log_admin_action(
+            "UPDATE_INTENTS_FAILED",
+            f"Gagal update intents: {str(e)}"
+        )
+        return jsonify({"error": "Gagal update intents"}), 500
+
 
 # =========================
 @app.route("/test-db")
