@@ -418,41 +418,6 @@ def get_intents():
     with open(INTENTS_FILE, "r", encoding="utf-8") as f:
         return jsonify({"content": f.read()})
 
-@app.route("/intents/update", methods=["POST"])
-def update_intents():
-    if not session.get("user"):
-        return jsonify({"error": "Unauthorized"}), 403
-
-    data = request.get_json(force=True)
-    content = data.get("content")
-
-    if not content:
-        return jsonify({"error": "Konten kosong"}), 400
-
-    try:
-        with open(INTENTS_FILE, "w", encoding="utf-8") as f:
-            f.write(content)
-
-        reload_intents()
-
-        log_admin_action(
-            "UPDATE_INTENTS",
-            "Memperbarui file intents.json"
-        )
-
-        return jsonify({
-            "success": True,
-            "message": "Intents diperbarui & chatbot langsung aktif"
-        })
-
-    except Exception as e:
-        log_admin_action(
-            "UPDATE_INTENTS_FAILED",
-            f"Gagal update intents: {str(e)}"
-        )
-        return jsonify({"error": "Gagal update intents"}), 500
-
-
 # =========================
 # CHATBOT API
 # =========================
