@@ -3,102 +3,95 @@ import os
 import resend
 from datetime import datetime
 
-# =========================
-# CONFIGURATION
-# =========================
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-EMAIL_TEST_MODE = os.environ.get("EMAIL_TEST_MODE", "false").lower() == "true"
-TESTING_EMAIL = os.environ.get("EMAIL_TEST_ADDRESS")  # email verified di Resend
+# Setup Resend
+resend.api_key = os.environ.get("RESEND_API_KEY")
 
-resend.api_key = RESEND_API_KEY
-
-
-def send_activation_email(to_email: str, username: str, activation_link: str):
-    """
-    Kirim email aktivasi akun admin
-    - TEST MODE  : email dikirim ke email developer (verified)
-    - PROD MODE  : email dikirim ke user asli
-    """
-
-    # =========================
-    # VALIDATION
-    # =========================
-    if not RESEND_API_KEY:
-        return {
-            "success": False,
-            "error": "RESEND_API_KEY not set"
-        }
-
-    if EMAIL_TEST_MODE and not TESTING_EMAIL:
-        return {
-            "success": False,
-            "error": "EMAIL_TEST_ADDRESS not set while EMAIL_TEST_MODE is true"
-        }
-
-    # Tentukan penerima
-    recipient_email = TESTING_EMAIL if EMAIL_TEST_MODE else to_email
-
-    # =========================
-    # EMAIL CONTENT
-    # =========================
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: #2f3e66; padding: 25px; color: white; text-align: center;">
-            <h1 style="margin: 0;">Kelurahan Cipinang Melayu</h1>
-            <p style="margin: 5px 0 0;">Sistem Administrasi Digital</p>
-        </div>
-
-        <div style="background: #ffffff; padding: 30px;">
-            <h2 style="color: #2f3e66;">Aktivasi Akun Admin</h2>
-
-            <p>Halo <strong>{username}</strong>,</p>
-
-            <p>
-                Akun admin Anda telah berhasil dibuat.
-                Silakan klik tombol di bawah ini untuk mengaktifkan akun:
-            </p>
-
-            <div style="text-align: center; margin: 30px 0;">
-                <a href="{activation_link}"
-                   style="background: #4CAF50; color: white; padding: 14px 28px;
-                          text-decoration: none; border-radius: 6px; font-weight: bold;">
-                    Aktivasi Akun
-                </a>
-            </div>
-
-            <p style="font-size: 14px; color: #666;">
-                Jika tombol tidak berfungsi, salin dan buka link berikut di browser:
-            </p>
-
-            <div style="background: #f5f5f5; padding: 12px; font-size: 13px;">
-                <code>{activation_link}</code>
-            </div>
-
-            <p style="font-size: 12px; color: #999; margin-top: 30px;">
-                Email ini dikirim secara otomatis. Mohon tidak membalas email ini.
-            </p>
-        </div>
-    </div>
-    """
-
-    # =========================
-    # SEND EMAIL
-    # =========================
+def send_activation_email(to_email, username, activation_link):
+    """Kirim email aktivasi menggunakan Resend"""
+    
+    if not resend.api_key:
+        print("⚠️ RESEND_API_KEY not set, skipping email")
+        return {"success": False, "error": "API Key not set"}
+    
     try:
-        resend.Emails.send({
+        # UNTUK TESTING: Kirim ke email verified kamu sendiri
+        testing_email = "fajafi217@gmail.com"  # Email verified kamu di Resend
+        
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #2f3e66 0%, #4c5f9e 100%); 
+                       padding: 25px; border-radius: 10px 10px 0 0; color: white; text-align: center;">
+                <h1 style="margin: 0; font-size: 24px;">Kelurahan Cipinang Melayu</h1>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">Sistem Administrasi Digital</p>
+            </div>
+            
+            <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; 
+                       box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                
+                <div style="background: #fff8e1; padding: 15px; border-radius: 5px; 
+                           margin-bottom: 20px; border-left: 4px solid #ffb300;">
+                    <p style="margin: 0; color: #5d4037; font-size: 14px;">
+                        <strong>⚠️ TEST MODE - DEMO ONLY</strong><br>
+                        <strong>Actual recipient:</strong> {to_email}<br>
+                        <strong>Username:</strong> {username}
+                    </p>
+                </div>
+                
+                <h2 style="color: #2f3e66; margin-top: 0;">🔐 Aktivasi Akun Admin</h2>
+                
+                <p>Halo <strong style="color: #2f3e66;">{username}</strong>,</p>
+                <p>Akun admin Anda untuk <strong>Kelurahan Cipinang Melayu</strong> telah dibuat.</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{activation_link}" 
+                       style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); 
+                              color: white; 
+                              padding: 15px 30px; 
+                              text-decoration: none; 
+                              border-radius: 8px; 
+                              font-weight: bold;
+                              font-size: 16px;
+                              display: inline-block;">
+                       🔓 Aktivasi Akun Sekarang
+                    </a>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                    Atau copy link aktivasi berikut ke browser:
+                </p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; 
+                           border: 1px solid #e9ecef; margin: 15px 0;">
+                    <code style="word-break: break-all; font-family: 'Courier New', monospace; 
+                           font-size: 13px; color: #d63384;">
+                        {activation_link}
+                    </code>
+                </div>
+            </div>
+        </div>
+        """
+        
+        # Kirim ke email verified kamu sendiri (karena testing mode)
+        r = resend.Emails.send({
             "from": "Kelurahan Cipinang Melayu <onboarding@resend.dev>",
-            "to": recipient_email,
-            "subject": "Aktivasi Akun Admin Kelurahan Cipinang Melayu",
+            "to": testing_email,
+            "subject": f"🔐 [TEST] Aktivasi Akun untuk {username} ({to_email})",
             "html": html_content
         })
-
+        
+        print(f"✅ [TEST MODE] Email sent to {testing_email}")
+        print(f"   Intended for: {to_email} (username: {username})")
+        print(f"   Activation link: {activation_link}")
+        
+        # Return dictionary
         return {
             "success": True,
-            "mode": "TEST" if EMAIL_TEST_MODE else "PRODUCTION"
+            "testing_mode": True,
+            "sent_to": testing_email,
+            "intended_for": to_email,
+            "activation_link": activation_link
         }
-
+        
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        print(f"❌ Email failed: {e}")
+        return {"success": False, "error": str(e)}
