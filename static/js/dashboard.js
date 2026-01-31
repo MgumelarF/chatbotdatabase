@@ -629,6 +629,77 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
+
+    /************** BACKUP FUNCTIONS **************/
+    async function downloadBackup(url, filename) {
+        try {
+            // Show loading
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = "⏳ Membuat backup...";
+            button.disabled = true;
+            
+            // Fetch backup data
+            const response = await fetch(url, {
+                credentials: "include"
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // Get filename from Content-Disposition header or use provided
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let actualFilename = filename;
+            
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                if (filenameMatch) {
+                    actualFilename = filenameMatch[1];
+                }
+            }
+            
+            // Create blob and download link
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = actualFilename;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Cleanup
+            window.URL.revokeObjectURL(downloadUrl);
+            document.body.removeChild(a);
+            
+            // Show success message
+            alert(`✅ Backup berhasil didownload: ${actualFilename}`);
+            
+        } catch (error) {
+            console.error("Backup error:", error);
+            alert(`❌ Gagal membuat backup: ${error.message}`);
+        } finally {
+            // Reset button
+            if (event && event.target) {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+    }
+
+    // Event listeners untuk backup buttons
+    document.getElementById("backupCategoriesBtn")?.addEventListener("click", (e) => {
+        downloadBackup("/backup/categories", "categories_backup.json");
+    });
+
+    document.getElementById("backupFaqBtn")?.addEventListener("click", (e) => {
+        downloadBackup("/backup/faq", "faq_backup.json");
+    });
+
+    document.getElementById("backupAllBtn")?.addEventListener("click", (e) => {
+        downloadBackup("/backup/all", "full_backup.json");
+    });
+
     /************** LOAD AWAL **************/
     loadCategories().then(loadFaq);
     loadIntents();

@@ -40,6 +40,12 @@
                 <span class="text">Edit intents.json</span>
             </li> -->
 
+            <!-- Dalam sidebar menu, tambahkan item Backup -->
+            <li data-section="backup">
+                <span class="icon">💾</span>
+                <span class="text">Backup Data</span>
+            </li>
+
             <li data-section="users">
                 <span class="icon">👤</span>
                 <span class="text">Kelola Admin</span>
@@ -139,6 +145,50 @@
             <br>
             <button id="saveIntentsBtn">Simpan & Latih Ulang AI</button>
         </section> -->
+
+        <!-- Di dalam main content, tambahkan section Backup -->
+        <section id="backup" class="section">
+            <h2>Backup Data</h2>
+            
+            <div class="backup-cards">
+                <div class="backup-card">
+                    <h3>📁 Backup Kategori</h3>
+                    <p>Download semua data kategori dalam format JSON</p>
+                    <button id="backupCategoriesBtn" class="backup-btn">
+                        📥 Download Kategori
+                    </button>
+                    <p class="backup-info">File: categories_backup_[timestamp].json</p>
+                </div>
+                
+                <div class="backup-card">
+                    <h3>📋 Backup FAQ</h3>
+                    <p>Download semua pertanyaan dan jawaban beserta kategori</p>
+                    <button id="backupFaqBtn" class="backup-btn">
+                        📥 Download FAQ
+                    </button>
+                    <p class="backup-info">File: faq_backup_[timestamp].json</p>
+                </div>
+                
+                <div class="backup-card">
+                    <h3>📦 Backup Lengkap</h3>
+                    <p>Download semua data (kategori + FAQ) dalam satu file</p>
+                    <button id="backupAllBtn" class="backup-btn full-backup">
+                        📦 Download Semua Data
+                    </button>
+                    <p class="backup-info">File: full_backup_[timestamp].json</p>
+                </div>
+            </div>
+            
+            <div class="backup-info-section">
+                <h3>ℹ️ Informasi Backup</h3>
+                <ul>
+                    <li>Backup dilakukan dalam format JSON yang mudah dibaca</li>
+                    <li>File backup berisi timestamp otomatis</li>
+                    <li>Backup dapat digunakan untuk restore data jika diperlukan</li>
+                    <li>Simpan file backup di tempat yang aman</li>
+                </ul>
+            </div>
+        </section>
 
         <!-- SUPERADMIN -->
         <section id="users" class="section">

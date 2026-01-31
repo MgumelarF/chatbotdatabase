@@ -688,19 +688,6 @@ def get_logs():
 
     return jsonify(logs)
 
-@app.route("/debug-email")
-def debug_email():
-    """Test email configuration"""
-    resend_key = os.environ.get("RESEND_API_KEY")
-    base_url = os.environ.get("BASE_URL")
-    
-    return jsonify({
-        "RESEND_API_KEY_set": bool(resend_key),
-        "RESEND_API_key_length": len(resend_key) if resend_key else 0,
-        "BASE_URL": base_url,
-        "testing_email": "fajafi217@gmail.com"
-    })
-
 # =========================
 # INIT FILE & RUN
 # =========================
