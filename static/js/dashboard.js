@@ -98,15 +98,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
             tr.querySelector(".delCatBtn").onclick = async () => {
                 if (!confirm("menghapus kategori menyebabkan hilangnya kategori pada faq, apakah anda yakin menghapus kategori ini?")) return;
-                await fetch(`/categories/${cat._id}`, {
-                    method: "DELETE",
-                    credentials: "include"
-                });
-                loadCategories();
-                loadFaq();
+                
+                try {
+                    const response = await fetch(`/categories/${cat._id}`, {
+                        method: "DELETE",
+                        credentials: "include"
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    // 🔥 PERBARUI SEMUA DATA SEKALIGUS
+                    await Promise.all([
+                        loadCategories(),
+                        loadFaq(),
+                        loadCategoryOptions()
+                    ]);
+                    
+                } catch (error) {
+                    console.error("Error deleting category:", error);
+                    alert("Gagal menghapus kategori: " + error.message);
+                }
             };
         });
 
+        // 🔥 PASTIKAN cache kategori di-update
         loadCategoryOptions();
     }
 
@@ -237,7 +254,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getCategoryName(id) {
-        if (!id) return "-";  //
+        if (!id || id === "null" || id === "undefined") return "-";  // 🔥 Handle semua kemungkinan
+        
+        // Pastikan categoriesCache sudah terisi
+        if (!categoriesCache || categoriesCache.length === 0) {
+            console.warn("Categories cache is empty");
+            return "-";
+        }
+        
         const cat = categoriesCache.find(c => c._id === id);
         return cat ? cat.name : "-";
     }
@@ -258,7 +282,8 @@ document.addEventListener("DOMContentLoaded", () => {
             let matchCategory = true;
 
             if (faqCategoryFilter === "none") {
-                matchCategory = !item.category_id;
+                // 🔥 PERBAIKI: Periksa null, undefined, atau string kosong
+                matchCategory = !item.category_id || item.category_id === "" || item.category_id === "null" || item.category_id === "undefined";
             } else if (faqCategoryFilter !== "all") {
                 matchCategory = item.category_id === faqCategoryFilter;
             }
@@ -319,23 +344,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Buat form edit
         const editForm = document.createElement("div");
-        editForm.className = "faq-edit-form";
-        editForm.innerHTML = `
-            <h4>Edit FAQ</h4>
-            <input type="text" class="edit-question" value="${faqToEdit.question}" placeholder="Pertanyaan">
-            <textarea class="edit-answer" placeholder="Jawaban">${faqToEdit.answer}</textarea>
-            <select class="edit-category">
-                <option value="">Pilih Kategori</option>
-                ${categoriesCache.map(cat => 
-                    `<option value="${cat._id}" ${cat._id === faqToEdit.category_id ? 'selected' : ''}>${cat.name}</option>`
-                ).join('')}
-            </select>
-            <div style="margin-top:10px;">
-                <button class="save-edit-btn">Simpan</button>
-                <button class="cancel-edit-btn">Batal</button>
-            </div>
-            <hr>
-        `;
+            editForm.className = "faq-edit-form";
+            
+            // 🔥 PERBAIKI: Pastikan category_id yang null ditangani dengan benar
+            const currentCategoryId = faqToEdit.category_id || "";
+            
+            editForm.innerHTML = `
+                <h4>Edit FAQ</h4>
+                <input type="text" class="edit-question" value="${faqToEdit.question}" placeholder="Pertanyaan">
+                <textarea class="edit-answer" placeholder="Jawaban">${faqToEdit.answer}</textarea>
+                <select class="edit-category">
+                    <option value="">Pilih Kategori (Tanpa Kategori)</option>
+                    ${categoriesCache.map(cat => 
+                        `<option value="${cat._id}" ${cat._id === currentCategoryId ? 'selected' : ''}>${cat.name}</option>`
+                    ).join('')}
+                </select>
+                <div style="margin-top:10px;">
+                    <button class="save-edit-btn">Simpan</button>
+                    <button class="cancel-edit-btn">Batal</button>
+                </div>
+                <hr>
+            `;
 
         faqDiv.parentNode.insertBefore(editForm, faqDiv.nextSibling);
         activeEditForm = editForm;
