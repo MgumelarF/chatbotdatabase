@@ -335,11 +335,25 @@ def delete_category(id):
         return jsonify({"error": "Unauthorized"}), 403
 
     cat = categories_collection.find_one({"_id": ObjectId(id)})
-
+    
+    if not cat:
+        return jsonify({"error": "Kategori tidak ditemukan"}), 404
+    
+    # 🔥 UPDATE FAQ YANG TERKAIT: Set category_id menjadi kosong
+    faq_collection.update_many(
+        {"category_id": id},
+        {"$set": {"category_id": None}}
+    )
+    
+    # Hapus kategori
     categories_collection.delete_one({"_id": ObjectId(id)})
-
+    
     if cat:
         log_admin_action("DELETE_CATEGORY", f"Hapus kategori: {cat['name']}")
+        
+        # 🔥 Sinkronisasi AI setelah update FAQ
+        generate_intents_from_db()
+        refresh_chatbot()
 
     return jsonify({"success": True})
 

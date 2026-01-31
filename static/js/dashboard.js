@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
             };
 
             tr.querySelector(".delCatBtn").onclick = async () => {
-                if (!confirm("Hapus kategori ini?")) return;
+                if (!confirm("menghapus kategori menyebabkan hilangnya kategori pada faq, apakah anda yakin menghapus kategori ini?")) return;
                 await fetch(`/categories/${cat._id}`, {
                     method: "DELETE",
                     credentials: "include"
@@ -237,6 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function getCategoryName(id) {
+        if (!id) return "-";  //
         const cat = categoriesCache.find(c => c._id === id);
         return cat ? cat.name : "-";
     }
