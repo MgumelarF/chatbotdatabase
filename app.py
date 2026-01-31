@@ -12,7 +12,7 @@ from flask import (
     redirect,
     session,
     send_from_directory,
-    
+    make_response
 )
 import secrets
 import json
@@ -626,6 +626,139 @@ def me():
     if not session.get("user"):
         return jsonify({"logged_in": False})
     return jsonify({"logged_in": True, "user": session["user"]})
+
+# =========================
+# BACKUP API
+# =========================
+@app.route("/backup/categories", methods=["GET"])
+@login_required
+def backup_categories():
+    try:
+        # Ambil data dari database
+        categories = list(categories_collection.find({}))
+        for cat in categories:
+            cat["_id"] = str(cat["_id"])
+        
+        # Buat timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Konversi ke JSON string
+        json_data = json.dumps(categories, indent=2, ensure_ascii=False)
+        
+        # Buat response untuk download
+        response = make_response(json_data)
+        response.headers["Content-Type"] = "application/json"
+        response.headers["Content-Disposition"] = f"attachment; filename=categories_backup_{timestamp}.json"
+        
+        log_admin_action("BACKUP_CATEGORIES", "Download backup kategori")
+        
+        return response
+        
+    except Exception as e:
+        return jsonify({"error": f"Gagal membuat backup: {str(e)}"}), 500
+
+@app.route("/backup/faq", methods=["GET"])
+@login_required
+def backup_faq():
+    try:
+        # Ambil data dari database
+        faqs = list(faq_collection.find({}))
+        
+        # Format data
+        formatted_faqs = []
+        for faq in faqs:
+            formatted_faq = {
+                "_id": str(faq["_id"]),
+                "question": faq.get("question", ""),
+                "answer": faq.get("answer", ""),
+                "category_id": faq.get("category_id", ""),
+                "category_name": "-"
+            }
+            
+            # Cari nama kategori jika ada category_id
+            if faq.get("category_id"):
+                try:
+                    category = categories_collection.find_one({"_id": ObjectId(faq["category_id"])})
+                    if category:
+                        formatted_faq["category_name"] = category.get("name", "-")
+                except:
+                    pass
+            
+            formatted_faqs.append(formatted_faq)
+        
+        # Buat timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Konversi ke JSON string
+        json_data = json.dumps(formatted_faqs, indent=2, ensure_ascii=False)
+        
+        # Buat response untuk download
+        response = make_response(json_data)
+        response.headers["Content-Type"] = "application/json"
+        response.headers["Content-Disposition"] = f"attachment; filename=faq_backup_{timestamp}.json"
+        
+        log_admin_action("BACKUP_FAQ", "Download backup FAQ")
+        
+        return response
+        
+    except Exception as e:
+        return jsonify({"error": f"Gagal membuat backup: {str(e)}"}), 500
+
+@app.route("/backup/all", methods=["GET"])
+@login_required
+def backup_all():
+    try:
+        # Ambil semua data
+        categories = list(categories_collection.find({}))
+        faqs = list(faq_collection.find({}))
+        
+        # Format data
+        formatted_categories = []
+        for cat in categories:
+            formatted_categories.append({
+                "_id": str(cat["_id"]),
+                "name": cat.get("name", "")
+            })
+        
+        formatted_faqs = []
+        for faq in faqs:
+            formatted_faq = {
+                "_id": str(faq["_id"]),
+                "question": faq.get("question", ""),
+                "answer": faq.get("answer", ""),
+                "category_id": faq.get("category_id", "")
+            }
+            formatted_faqs.append(formatted_faq)
+        
+        # Gabungkan semua data
+        backup_data = {
+            "timestamp": datetime.now().isoformat(),
+            "categories": formatted_categories,
+            "faqs": formatted_faqs,
+            "metadata": {
+                "categories_count": len(formatted_categories),
+                "faqs_count": len(formatted_faqs),
+                "backup_version": "1.0"
+            }
+        }
+        
+        # Buat timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Konversi ke JSON string
+        json_data = json.dumps(backup_data, indent=2, ensure_ascii=False)
+        
+        # Buat response untuk download
+        response = make_response(json_data)
+        response.headers["Content-Type"] = "application/json"
+        response.headers["Content-Disposition"] = f"attachment; filename=full_backup_{timestamp}.json"
+        
+        log_admin_action("BACKUP_ALL", "Download backup lengkap")
+        
+        return response
+        
+    except Exception as e:
+        return jsonify({"error": f"Gagal membuat backup: {str(e)}"}), 500
 
 # =========================
 @app.route("/test-db")

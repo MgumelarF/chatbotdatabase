@@ -631,13 +631,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     /************** BACKUP FUNCTIONS **************/
-    async function downloadBackup(url, filename) {
+    async function downloadBackup(url, defaultFilename) {
         try {
-            // Show loading
-            const button = event.target;
-            const originalText = button.textContent;
-            button.textContent = "⏳ Membuat backup...";
-            button.disabled = true;
+            // 🔥 TAMBAHKAN: Loading sederhana tanpa disable button
+            const originalTitle = document.title;
+            document.title = "⏳ Membuat backup...";
             
             // Fetch backup data
             const response = await fetch(url, {
@@ -645,58 +643,70 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Coba baca error message dari response
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.error) {
+                        errorMessage = errorData.error;
+                    }
+                } catch {
+                    // Jika response bukan JSON, gunakan status text
+                    errorMessage = `${response.status}: ${response.statusText}`;
+                }
+                throw new Error(errorMessage);
             }
             
-            // Get filename from Content-Disposition header or use provided
+            // Get filename from header or use default
+            let filename = defaultFilename;
             const contentDisposition = response.headers.get('Content-Disposition');
-            let actualFilename = filename;
             
             if (contentDisposition) {
-                const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-                if (filenameMatch) {
-                    actualFilename = filenameMatch[1];
+                const match = contentDisposition.match(/filename="(.+)"/);
+                if (match && match[1]) {
+                    filename = match[1];
                 }
             }
             
-            // Create blob and download link
+            // Create download
             const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = actualFilename;
-            document.body.appendChild(a);
-            a.click();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
             
             // Cleanup
-            window.URL.revokeObjectURL(downloadUrl);
-            document.body.removeChild(a);
+            window.URL.revokeObjectURL(blobUrl);
             
-            // Show success message
-            alert(`✅ Backup berhasil didownload: ${actualFilename}`);
+            // 🔥 TAMBAHKAN: Notifikasi sukses yang lebih informatif
+            setTimeout(() => {
+                alert(`✅ Backup berhasil didownload!\n\nFile: ${filename}\nSize: ${(blob.size / 1024).toFixed(2)} KB`);
+            }, 300);
             
         } catch (error) {
-            console.error("Backup error:", error);
-            alert(`❌ Gagal membuat backup: ${error.message}`);
+            console.error('Download error:', error);
+            alert(`❌ Gagal membuat backup\n\nError: ${error.message}\n\nPastikan Anda masih login dan coba lagi.`);
         } finally {
-            // Reset button
-            if (event && event.target) {
-                button.textContent = originalText;
-                button.disabled = false;
-            }
+            // 🔥 RESET: Kembalikan title
+            document.title = originalTitle;
         }
     }
 
-    // Event listeners untuk backup buttons
-    document.getElementById("backupCategoriesBtn")?.addEventListener("click", (e) => {
+    // Event listeners yang sederhana
+    document.getElementById("backupCategoriesBtn")?.addEventListener("click", () => {
         downloadBackup("/backup/categories", "categories_backup.json");
     });
 
-    document.getElementById("backupFaqBtn")?.addEventListener("click", (e) => {
+    document.getElementById("backupFaqBtn")?.addEventListener("click", () => {
         downloadBackup("/backup/faq", "faq_backup.json");
     });
 
-    document.getElementById("backupAllBtn")?.addEventListener("click", (e) => {
+    document.getElementById("backupAllBtn")?.addEventListener("click", () => {
         downloadBackup("/backup/all", "full_backup.json");
     });
 
