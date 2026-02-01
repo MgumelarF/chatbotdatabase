@@ -142,6 +142,36 @@ header {
     text-align: center;
 }
 
+/* ===== PASSWORD WRAPPER ===== */
+.password-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 40px; /* Beri ruang untuk ikon mata */
+    box-sizing: border-box;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none;
+    font-size: 18px;
+    color: #666;
+    padding: 5px;
+    transition: color 0.3s;
+}
+
+.toggle-password:hover {
+    color: #4c8ff7;
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 500px) {
     .login-box {

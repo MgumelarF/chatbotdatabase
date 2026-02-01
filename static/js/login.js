@@ -1,3 +1,16 @@
+document.getElementById("togglePassword").addEventListener("click", function() {
+    const passwordInput = document.getElementById("password");
+    const toggleIcon = this;
+    
+    if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        toggleIcon.textContent = "🙈"; // Ikon mata tertutup
+    } else {
+        passwordInput.type = "password";
+        toggleIcon.textContent = "👁️"; // Ikon mata terbuka
+    }
+});
+
 document.getElementById("loginBtn").addEventListener("click", function () {
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
