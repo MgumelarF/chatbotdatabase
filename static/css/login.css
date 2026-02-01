@@ -142,6 +142,58 @@ header {
     text-align: center;
 }
 
+/* ===== PASSWORD WRAPPER ===== */
+.password-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 50px; /* Beri ruang untuk ikon mata */
+    box-sizing: border-box;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    user-select: none;
+    font-size: 18px;
+    color: #666;
+    padding: 5px;
+    transition: color 0.3s;
+}
+
+.toggle-password:hover {
+    color: #4c8ff7;
+}
+
+/* ===== ERROR MESSAGE ===== */
+.error {
+    color: #ff4c4c;
+    font-size: 14px;
+    margin-bottom: 15px;
+    display: none;
+    text-align: center;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 500px) {
+    .login-box {
+        width: 90%;
+        padding: 40px 20px;
+    }
+    
+    .toggle-password {
+        right: 10px;
+        font-size: 16px;
+    }
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 500px) {
     .login-box {
