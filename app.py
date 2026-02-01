@@ -34,16 +34,15 @@ except ImportError as e:
     
 from werkzeug.security import generate_password_hash, check_password_hash
 from auth import login_required, superadmin_required
-from datetime import timedelta
-from flask_cors import CORS
+from datetime import timedelta, datetime, timezone
+
+CORS(app, supports_credentials=True)
 
 from chatbot_engine import get_response
 
 from db import faq_collection, categories_collection
 from services.intent_service import generate_intents_from_db
 from utils.reload_model import refresh_chatbot
-
-from datetime import datetime
 from bson import ObjectId
 from bson.objectid import ObjectId
 from db import users_collection, admin_logs_collection
@@ -133,12 +132,17 @@ def log_admin_action(action, detail=""):
             "action": action,
             "detail": detail,
             "ip": request.remote_addr if request else "127.0.0.1",
-            "timestamp": datetime.now(datetime.timezone.utc),
+            "timestamp": datetime.now(timezone.utc),
             "user_agent": request.headers.get("User-Agent", "") if request else "",
             "endpoint": request.endpoint if request else "",
             "method": request.method if request else ""
         }
 
+        # CEK JIKA admin_logs_collection TERSEDIA
+        if admin_logs_collection is None:
+            print(f"📝 LOG (NO DB): {log_entry['username']} - {action} - {detail}")
+            return True
+            
         # Masuk ke database
         admin_logs_collection.insert_one(log_entry)
         
@@ -264,7 +268,7 @@ def add_faq():
         "question": question,
         "answer": answer,
         "category_id": category_id,
-        "created_at": datetime.now(datetime.timezone.utc),
+        "created_at": datetime.now(timezone.utc),  # PERBAIKAN DI SINI
         "created_by": session["user"]["username"]
     })
     
@@ -281,6 +285,7 @@ def add_faq():
     return jsonify({"success": True, "id": faq_id})
 
 @app.route("/faq/<id>", methods=["PUT"])
+@login_required  # TAMBAHKAN INI
 def edit_faq(id):
     if not session.get("user"):
         return jsonify({"error": "Unauthorized"}), 403
@@ -394,6 +399,7 @@ def add_category():
 
 
 @app.route("/categories/<id>", methods=["PUT"])
+@login_required  # TAMBAHKAN INI
 def edit_category(id):
     if not session.get("user"):
         return jsonify({"error": "Unauthorized"}), 403
@@ -418,6 +424,7 @@ def edit_category(id):
     return jsonify({"success": True})
 
 @app.route("/categories/<id>", methods=["DELETE"])
+@login_required  # TAMBAHKAN INI
 def delete_category(id):
     if not session.get("user"):
         return jsonify({"error": "Unauthorized"}), 403
@@ -501,13 +508,16 @@ def serve_static(filename):
     return send_from_directory(os.path.join(BASE_DIR, "static"), filename)
 
 # ==========================
+# # CREATE DEFAULT ADMIN
+# ==========================
 def create_default_admin():
     if users_collection.count_documents({}) == 0:
         users_collection.insert_one({
             "username": "owner",
             "password": generate_password_hash("Owner123!"),
             "role": "superadmin",
-             "status": "active"
+            "status": "active",
+            "created_at": datetime.now(timezone.utc)  # PERBAIKAN DI SINI
         })
         print("Superadmin dibuat: owner / Owner123!")
 
@@ -551,7 +561,7 @@ def add_admin_with_email():
         "activation_token": activation_token,
         "activation_expires_at": expires_at,
         "status": "pending",
-        "created_at": datetime.now(datetime.timezone.utc)
+        "created_at": datetime.now(timezone.utc)  # PERBAIKAN DI SINI
     })
 
     # === BUILD ACTIVATION LINK ===
@@ -610,7 +620,7 @@ def clear_old_logs():
     """
     try:
         # Hitung tanggal 30 hari yang lalu
-        thirty_days_ago = datetime.now(datetime.timezone.utc) - timedelta(days=30)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)  # PERBAIKAN
         
         # Hapus logs lama
         result = admin_logs_collection.delete_many({
@@ -677,7 +687,7 @@ def activate_admin():
                 "$set": {
                     "password": generate_password_hash(password),
                     "status": "active",
-                    "updated_at": datetime.now(datetime.timezone.utc)
+                    "updated_at": datetime.now(timezone.utc)  # PERBAIKAN DI SINI
                 },
                 "$unset": {
                     "activation_token": "",
