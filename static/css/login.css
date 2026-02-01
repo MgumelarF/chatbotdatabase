@@ -143,30 +143,55 @@ header {
 }
 
 /* ===== PASSWORD WRAPPER ===== */
-.login-box .password-wrapper {
-    position: relative !important;
-    width: 100% !important;
-    margin-bottom: 20px !important;
+/* ===== PASSWORD WRAPPER ===== */
+.password-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
 }
 
-.login-box .password-wrapper input {
-    width: 100% !important;
-    padding-right: 40px !important;
-    padding: 12px 40px 12px 15px !important;
-    margin-bottom: 0 !important;
+.password-wrapper input {
+    width: 100%;
+    padding: 12px 40px 12px 15px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    outline: none;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: all 0.3s;
 }
 
-.login-box .toggle-password {
-    position: absolute !important;
-    right: 15px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    background: transparent !important;
-    border: none !important;
-    cursor: pointer !important;
-    z-index: 10 !important;
+.password-wrapper input:focus {
+    border-color: #4c8ff7;
+    box-shadow: 0 0 5px rgba(76, 143, 247, 0.5);
 }
 
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.toggle-password i {
+    font-size: 16px;
+    color: #666;
+    transition: color 0.3s;
+}
+
+.toggle-password:hover i {
+    color: #4c8ff7;
+}
 .password-wrapper,
 .password-wrapper *,
 .password-wrapper input,
