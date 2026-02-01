@@ -1,9 +1,16 @@
 import json
+import os
 from db import faq_collection
 
-INTENTS_PATH = "data/intents.json"
+# 🔥 ambil base directory aplikasi
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+INTENTS_PATH = os.path.join(BASE_DIR, "data", "intents.json")
 
 def generate_intents_from_db():
+    # ✅ pastikan folder data ada
+    os.makedirs(os.path.dirname(INTENTS_PATH), exist_ok=True)
+
     faq_data = list(faq_collection.find({}))
 
     intents = [
@@ -27,6 +34,11 @@ def generate_intents_from_db():
         })
 
     with open(INTENTS_PATH, "w", encoding="utf-8") as f:
-        json.dump({"intents": intents}, f, indent=2, ensure_ascii=False)
+        json.dump(
+            {"intents": intents},
+            f,
+            indent=2,
+            ensure_ascii=False
+        )
 
-    print("✅ intents.json updated from MongoDB")
+    print("✅ intents.json updated at:", INTENTS_PATH)
