@@ -36,7 +36,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from auth import login_required, superadmin_required
 from datetime import timedelta, datetime, timezone
 
-CORS(app, supports_credentials=True)
+from flask_cors import CORS
 
 from chatbot_engine import get_response
 
