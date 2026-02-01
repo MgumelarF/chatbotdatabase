@@ -39,6 +39,3 @@ print("Collections:", db.list_collection_names())
 
 docs = list(faq_collection.find())
 print("Jumlah FAQ:", len(docs))
-
-if docs:
-    print("Contoh 1 data FAQ:", docs[0])
