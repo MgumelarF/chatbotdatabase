@@ -114,23 +114,48 @@ def save_json(path, data):
 # =========================
 # LOG ADMIN ACTION
 # =======================
-def log_admin_action(action, detail):
+def log_admin_action(action, detail=""):
+    """
+    Fungsi yang ditingkatkan untuk logging aktivitas admin.
+    """
     try:
         if not session.get("user"):
-            print("LOG GAGAL: Tidak ada session")
+            print(f"⚠️  LOG WARNING: No session for action '{action}' - detail: {detail}")
             return
 
-        admin_logs_collection.insert_one({
-            "username": session["user"]["username"],
-            "role": session["user"]["role"],
+        # Pastikan detail tidak terlalu panjang
+        if isinstance(detail, str) and len(detail) > 500:
+            detail = detail[:497] + "..."
+
+        log_entry = {
+            "username": session["user"].get("username", "unknown"),
+            "role": session["user"].get("role", "unknown"),
             "action": action,
             "detail": detail,
-            "ip": request.remote_addr,
-            "timestamp": datetime.now(datetime.timezone.utc)
-        })
-    except Exception as e:
-        print("LOG ERROR:", e)
+            "ip": request.remote_addr if request else "127.0.0.1",
+            "timestamp": datetime.now(datetime.timezone.utc),
+            "user_agent": request.headers.get("User-Agent", "") if request else "",
+            "endpoint": request.endpoint if request else "",
+            "method": request.method if request else ""
+        }
 
+        # Masuk ke database
+        admin_logs_collection.insert_one(log_entry)
+        
+        # Juga tampilkan di console untuk debugging
+        print(f"📝 LOG: {log_entry['username']} ({log_entry['role']}) - {action} - {detail}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ LOG ERROR: {str(e)}")
+        # Fallback: simpan ke file jika database error
+        try:
+            with open("admin_errors.log", "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now().isoformat()} - LOG ERROR: {str(e)}\n")
+        except:
+            pass
+        return False
 # =========================
 # ROUTE HALAMAN
 # =========================
@@ -154,6 +179,22 @@ def logout():
     log_admin_action("LOGOUT", "User logout")
     session.clear()
     return redirect("/")
+
+@app.route("/admin/logs/latest")
+@login_required
+def get_latest_logs():
+    """Ambil 5 logs terbaru untuk real-time updates"""
+    logs = list(admin_logs_collection.find()
+                .sort("timestamp", -1)
+                .limit(5))
+    
+    for l in logs:
+        l["_id"] = str(l["_id"])
+        # Format timestamp untuk frontend
+        if l.get("timestamp"):
+            l["timestamp_formatted"] = l["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+    
+    return jsonify(logs)
 
 # =========================
 # LOGIN API
@@ -202,10 +243,8 @@ def get_faq():
     return jsonify(data)
 
 @app.route("/faq", methods=["POST"])
+@login_required
 def add_faq():
-    if not session.get("user"):
-        return jsonify({"error": "Unauthorized"}), 403
-
     data = request.get_json(force=True)
     question = data.get("question", "").strip()
     answer = data.get("answer", "").strip()
@@ -214,25 +253,28 @@ def add_faq():
     if not question or not answer:
         return jsonify({"error": "Question dan answer wajib"}), 400
 
-    result = faq_collection.insert_one({
-        "question": question,
-        "answer": answer,
-        "category_id": category_id
-    })
-    
-    # 🔥 LOG DENGAN ID BARU
-    faq_id = str(result.inserted_id)
-    
-    # Cari nama kategori
-    category_name = "Tanpa Kategori"
+    # 🔥 LOG SEBELUM INSERT
+    log_detail_before = f"Menambahkan FAQ baru: '{question[:50]}...'"
     if category_id:
         category = categories_collection.find_one({"_id": ObjectId(category_id)})
         if category:
-            category_name = category.get("name", "Unknown")
-    
-    log_admin_action("ADD_FAQ", f"Menambahkan FAQ: '{question[:100]}...' (Kategori: {category_name}, ID: {faq_id})")
+            log_detail_before += f" (Kategori: {category.get('name', 'Unknown')})"
 
-    # 🔥 Sinkronisasi AI
+    result = faq_collection.insert_one({
+        "question": question,
+        "answer": answer,
+        "category_id": category_id,
+        "created_at": datetime.now(datetime.timezone.utc),
+        "created_by": session["user"]["username"]
+    })
+    
+    # 🔥 LOG SETELAH INSERT DENGAN ID
+    faq_id = str(result.inserted_id)
+    log_detail_after = f"FAQ berhasil ditambahkan dengan ID: {faq_id}"
+    
+    log_admin_action("ADD_FAQ", f"{log_detail_before} - {log_detail_after}")
+
+    # Sinkronisasi AI
     generate_intents_from_db()
     refresh_chatbot()
 
@@ -279,22 +321,45 @@ def edit_faq(id):
     return jsonify({"success": True})
 
 @app.route("/faq/<id>", methods=["DELETE"])
+@login_required
 def delete_faq(id):
-    if not session.get("user"):
-        return jsonify({"error": "Unauthorized"}), 403
+    try:
+        # Ambil FAQ sebelum dihapus untuk logging
+        faq = faq_collection.find_one({"_id": ObjectId(id)})
+        
+        if not faq:
+            log_admin_action("DELETE_FAQ_FAILED", f"FAQ dengan ID {id} tidak ditemukan")
+            return jsonify({"error": "FAQ tidak ditemukan"}), 404
 
-    faq = faq_collection.find_one({"_id": ObjectId(id)})
-
-    faq_collection.delete_one({"_id": ObjectId(id)})
-
-    if faq:
-        # 🔥 LOG DETAIL: Tampilkan pertanyaan yang dihapus
-        log_admin_action("DELETE_FAQ", f"Hapus FAQ: '{faq['question'][:100]}...' (ID: {id})")
-
-    generate_intents_from_db()
-    refresh_chatbot()
-
-    return jsonify({"success": True})
+        # Simpan data untuk logging
+        question_preview = faq['question'][:100] if faq.get('question') else "No question"
+        answer_length = len(faq.get('answer', ''))
+        
+        # Hapus FAQ
+        result = faq_collection.delete_one({"_id": ObjectId(id)})
+        
+        if result.deleted_count == 1:
+            # 🔥 LOG DETAIL: Tampilkan pertanyaan yang dihapus
+            log_detail = (
+                f"Hapus FAQ: '{question_preview}...' "
+                f"(ID: {id}, Jawaban: {answer_length} karakter) "
+                f"oleh {session['user']['username']}"
+            )
+            
+            log_admin_action("DELETE_FAQ", log_detail)
+            
+            return jsonify({
+                "success": True,
+                "message": "FAQ berhasil dihapus",
+                "deleted_id": id
+            })
+        else:
+            log_admin_action("DELETE_FAQ_FAILED", f"Gagal menghapus FAQ ID {id}")
+            return jsonify({"error": "Gagal menghapus FAQ"}), 500
+            
+    except Exception as e:
+        log_admin_action("DELETE_FAQ_ERROR", f"Error: {str(e)} saat menghapus FAQ ID {id}")
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 
 
@@ -533,6 +598,41 @@ def add_admin_with_email():
             "error": f"Email tidak terkirim: {str(e)}",
             "note": "Gunakan link di atas untuk aktivasi manual"
         })
+    
+# ========================
+# CLEAR OLD LOGS
+# ========================
+@app.route("/admin/logs/clear-old", methods=["POST"])
+@superadmin_required
+def clear_old_logs():
+    """
+    Hapus logs yang lebih dari 30 hari
+    """
+    try:
+        # Hitung tanggal 30 hari yang lalu
+        thirty_days_ago = datetime.now(datetime.timezone.utc) - timedelta(days=30)
+        
+        # Hapus logs lama
+        result = admin_logs_collection.delete_many({
+            "timestamp": {"$lt": thirty_days_ago}
+        })
+        
+        # Log aksi ini
+        log_admin_action(
+            "CLEAR_OLD_LOGS", 
+            f"Menghapus {result.deleted_count} logs yang lebih dari 30 hari"
+        )
+        
+        return jsonify({
+            "success": True,
+            "deleted_count": result.deleted_count,
+            "message": f"Berhasil menghapus {result.deleted_count} logs lama"
+        })
+        
+    except Exception as e:
+        log_admin_action("CLEAR_LOGS_ERROR", f"Gagal menghapus logs lama: {str(e)}")
+        return jsonify({"error": f"Gagal menghapus logs: {str(e)}"}), 500
+
 
 # =========================
 # activate admin account

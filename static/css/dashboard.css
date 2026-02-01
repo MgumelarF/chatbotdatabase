@@ -254,6 +254,88 @@ textarea {
     background: #138496;
 }
 
+/* ========== LOGS STYLES ========== */
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.logs-table th {
+    background: #2c3e50;
+    color: white;
+    padding: 12px 15px;
+    text-align: left;
+    position: sticky;
+    top: 0;
+}
+
+.logs-table td {
+    padding: 10px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.logs-table tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Warna baris berdasarkan aksi */
+.logs-table tr.delete-action {
+    background-color: #ffebee;
+}
+
+.logs-table tr.edit-action {
+    background-color: #fff3e0;
+}
+
+.logs-table tr.add-action {
+    background-color: #e8f5e8;
+}
+
+.logs-controls {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.logs-controls button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.logs-controls button.danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.logs-controls button.danger:hover {
+    background-color: #c82333;
+}
+
+/* Responsive logs table */
+@media (max-width: 768px) {
+    .logs-table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .logs-controls {
+        flex-direction: column;
+    }
+    
+    .logs-controls button {
+        width: 100%;
+    }
+}
+
 /* =========================
    BUTTON
 ========================= */

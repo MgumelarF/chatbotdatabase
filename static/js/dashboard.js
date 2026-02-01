@@ -67,6 +67,177 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /************** ADMIN LOGS VIEWER **************/
+    async function loadAdminLogs() {
+        try {
+            const res = await fetch("/admin/logs");
+            if (!res.ok) return;
+            
+            const logs = await res.json();
+            const container = document.getElementById("logsContainer");
+            if (!container) return;
+            
+            container.innerHTML = "";
+            
+            if (logs.length === 0) {
+                container.innerHTML = "<p>Tidak ada log aktivitas.</p>";
+                return;
+            }
+            
+            const table = document.createElement("table");
+            table.className = "logs-table";
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Waktu</th>
+                        <th>User</th>
+                        <th>Aksi</th>
+                        <th>Detail</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            `;
+            
+            const tbody = table.querySelector("tbody");
+            
+            logs.forEach(log => {
+                const tr = document.createElement("tr");
+                
+                // Format waktu
+                const timestamp = new Date(log.timestamp);
+                const timeStr = timestamp.toLocaleString("id-ID");
+                
+                // Warna berdasarkan aksi
+                let rowClass = "";
+                if (log.action.includes("DELETE")) rowClass = "delete-action";
+                else if (log.action.includes("EDIT")) rowClass = "edit-action";
+                else if (log.action.includes("ADD")) rowClass = "add-action";
+                
+                tr.className = rowClass;
+                
+                tr.innerHTML = `
+                    <td>${timeStr}</td>
+                    <td><strong>${log.username}</strong><br><small>${log.role}</small></td>
+                    <td><code>${log.action}</code></td>
+                    <td>${log.detail || "-"}</td>
+                    <td><small>${log.ip || "-"}</small></td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+            
+            container.appendChild(table);
+            
+        } catch (error) {
+            console.error("Gagal memuat logs:", error);
+        }
+    }
+
+    // Tambahkan ke DOMContentLoaded
+    document.addEventListener("DOMContentLoaded", () => {
+        // ... kode lainnya ...
+        
+        // Tambahkan menu logs di sidebar
+        const sidebarMenu = document.querySelector(".sidebar-menu");
+        if (sidebarMenu) {
+            const logsItem = document.createElement("li");
+            logsItem.dataset.section = "logs";
+            logsItem.innerHTML = `
+                <span class="icon">📊</span>
+                <span class="text">Log Aktivitas</span>
+            `;
+            sidebarMenu.appendChild(logsItem);
+            
+            logsItem.addEventListener("click", () => {
+                showSection("logs", logsItem);
+            });
+        }
+        
+        // Tambahkan section logs di content
+        const content = document.querySelector(".content");
+        if (content) {
+            const logsSection = document.createElement("section");
+            logsSection.id = "logs";
+            logsSection.className = "section";
+            logsSection.innerHTML = `
+                <h2>Log Aktivitas Admin</h2>
+                <div class="logs-controls">
+                    <button id="refreshLogsBtn">🔄 Refresh Logs</button>
+                    <button id="exportLogsBtn">📥 Export ke CSV</button>
+                    <button id="clearOldLogsBtn" class="danger">🗑️ Hapus Logs Lama (>30 hari)</button>
+                </div>
+                <div id="logsContainer"></div>
+            `;
+            content.appendChild(logsSection);
+            
+            // Event listeners untuk logs
+            document.getElementById("refreshLogsBtn")?.addEventListener("click", loadAdminLogs);
+            
+            document.getElementById("exportLogsBtn")?.addEventListener("click", async () => {
+                try {
+                    const res = await fetch("/admin/logs");
+                    const logs = await res.json();
+                    
+                    // Convert to CSV
+                    let csv = "Timestamp,Username,Role,Action,Detail,IP\n";
+                    logs.forEach(log => {
+                        const row = [
+                            new Date(log.timestamp).toISOString(),
+                            log.username,
+                            log.role,
+                            log.action,
+                            `"${(log.detail || "").replace(/"/g, '""')}"`,
+                            log.ip
+                        ];
+                        csv += row.join(",") + "\n";
+                    });
+                    
+                    // Download
+                    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `admin_logs_${new Date().toISOString().split('T')[0]}.csv`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    
+                } catch (error) {
+                    alert("Gagal export logs: " + error.message);
+                }
+            });
+            
+            document.getElementById("clearOldLogsBtn")?.addEventListener("click", async () => {
+                if (!confirm("Hapus semua logs yang lebih dari 30 hari? Tindakan ini tidak dapat dibatalkan.")) return;
+                
+                try {
+                    const res = await fetch("/admin/logs/clear-old", {
+                        method: "POST",
+                        credentials: "include"
+                    });
+                    
+                    if (res.ok) {
+                        alert("Logs lama berhasil dihapus");
+                        loadAdminLogs();
+                    } else {
+                        alert("Gagal menghapus logs lama");
+                    }
+                } catch (error) {
+                    alert("Error: " + error.message);
+                }
+            });
+            
+            // Load logs saat section logs aktif
+            document.querySelectorAll(".sidebar-menu li").forEach(li => {
+                li.addEventListener("click", () => {
+                    if (li.dataset.section === "logs") {
+                        loadAdminLogs();
+                    }
+                });
+            });
+        }
+    });
+
     async function loadCategories() {
         const res = await fetch("/categories");
         const data = await res.json();
