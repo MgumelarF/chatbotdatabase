@@ -68,15 +68,16 @@ header {
 /* ===== LOGIN BOX ===== */
 .login-box {
     background: white;
-    width: 400px;
-    max-width: 95%;
-    padding: 50px 50px;
+    width: 400px;          /* Lebar kotak login */
+    max-width: 95%;        /* Responsive mobile */
+    padding: 50px 50px;    /* Simetris kiri-kanan */
     border-radius: 15px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    margin: 0 auto;
+    text-align: center;
+    margin: 0 auto;        /* Center horizontal */
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center semua child */
+    align-items: stretch;  /* semua input full width */
 }
 
 /* JUDUL */
@@ -139,75 +140,6 @@ header {
     margin-bottom: 15px;
     display: none;
     text-align: center;
-}
-/* Label di dalam input-group */
-.input-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #333;
-    text-align: left;
-}
-
-/* Input di dalam input-group */
-.input-group input {
-    width: 100%;
-}
-.input-group {
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-/* ===== PASSWORD WRAPPER ===== */
-.password-wrapper {
-    position: relative;
-    width: 100%;
-    margin-bottom: 20px;
-}
-
-.password-wrapper input {
-    width: 100%;
-    padding-right: 50px; /* Beri ruang untuk ikon mata */
-    box-sizing: border-box;
-}
-
-.toggle-password {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-    user-select: none;
-    font-size: 18px;
-    color: #666;
-    padding: 5px;
-    transition: color 0.3s;
-}
-
-.toggle-password:hover {
-    color: #4c8ff7;
-}
-
-/* ===== ERROR MESSAGE ===== */
-.error {
-    color: #ff4c4c;
-    font-size: 14px;
-    margin-bottom: 15px;
-    display: none;
-    text-align: center;
-}
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 500px) {
-    .login-box {
-        width: 90%;
-        padding: 40px 20px;
-    }
-    
-    .toggle-password {
-        right: 10px;
-        font-size: 16px;
-    }
 }
 
 /* ===== RESPONSIVE ===== */
