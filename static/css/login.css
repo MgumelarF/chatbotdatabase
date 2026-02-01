@@ -68,16 +68,15 @@ header {
 /* ===== LOGIN BOX ===== */
 .login-box {
     background: white;
-    width: 400px;          /* Lebar kotak login */
-    max-width: 95%;        /* Responsive mobile */
-    padding: 50px 50px;    /* Simetris kiri-kanan */
+    width: 400px;
+    max-width: 95%;
+    padding: 50px 50px;
     border-radius: 15px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    text-align: center;
-    margin: 0 auto;        /* Center horizontal */
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    align-items: stretch;  /* semua input full width */
+    align-items: center; /* Center semua child */
 }
 
 /* JUDUL */
@@ -140,6 +139,23 @@ header {
     margin-bottom: 15px;
     display: none;
     text-align: center;
+}
+/* Label di dalam input-group */
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    text-align: left;
+}
+
+/* Input di dalam input-group */
+.input-group input {
+    width: 100%;
+}
+.input-group {
+    width: 100%;
+    margin-bottom: 20px;
 }
 
 /* ===== PASSWORD WRAPPER ===== */
