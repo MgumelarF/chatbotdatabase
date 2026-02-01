@@ -160,6 +160,63 @@ def log_admin_action(action, detail=""):
         except:
             pass
         return False
+    
+# =========================
+# INIT INTENTS FILE
+# =========================
+def init_intents_file():
+    """Membuat file intents.json jika belum ada"""
+    try:
+        from services.intent_service import INTENTS_PATH
+        
+        # Cek apakah file sudah ada
+        if not os.path.exists(INTENTS_PATH):
+            print(f"📁 Membuat file intents.json di: {INTENTS_PATH}")
+            
+            # Buat struktur default
+            default_intents = {
+                "intents": [
+                    {
+                        "tag": "greeting",
+                        "patterns": ["Halo", "Hai", "Selamat pagi"],
+                        "responses": ["Halo! Ada yang bisa saya bantu?", "Hai! Bagaimana kabarmu?"]
+                    },
+                    {
+                        "tag": "goodbye",
+                        "patterns": ["Sampai jumpa", "Selamat tinggal", "Dah"],
+                        "responses": ["Sampai jumpa!", "Semoga harimu menyenangkan!"]
+                    }
+                ]
+            }
+            
+            # Buat direktori jika belum ada
+            os.makedirs(os.path.dirname(INTENTS_PATH), exist_ok=True)
+            
+            # Tulis file
+            with open(INTENTS_PATH, "w", encoding="utf-8") as f:
+                json.dump(default_intents, f, indent=2, ensure_ascii=False)
+            
+            print("✅ File intents.json berhasil dibuat")
+            return True
+        else:
+            print(f"✅ File intents.json sudah ada di: {INTENTS_PATH}")
+            return True
+            
+    except Exception as e:
+        print(f"❌ Gagal membuat intents.json: {str(e)}")
+        
+        # Fallback: coba buat di root directory
+        try:
+            fallback_path = os.path.join(BASE_DIR, "intents.json")
+            if not os.path.exists(fallback_path):
+                default_intents = {"intents": []}
+                with open(fallback_path, "w", encoding="utf-8") as f:
+                    json.dump(default_intents, f, indent=2, ensure_ascii=False)
+                print(f"✅ File intents.json dibuat di fallback: {fallback_path}")
+        except:
+            print("❌ Gagal membuat file intents.json di mana pun")
+        
+        return False
 # =========================
 # ROUTE HALAMAN
 # =========================
