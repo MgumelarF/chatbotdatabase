@@ -16,7 +16,6 @@ from flask import (
 )
 import secrets
 import json
-import os
 import re
 import time  # PAKAI import module, bukan fungsi
 
@@ -43,25 +42,9 @@ from db import faq_collection, categories_collection
 from services.intent_service import generate_intents_from_db
 from utils.reload_model import refresh_chatbot
 
-from datetime import datetime
+from datetime import datetime, timezone
 from bson import ObjectId
-from bson.objectid import ObjectId
 from db import users_collection, admin_logs_collection
-
-
-# ========== ANTI BRUTE FORCE LOGIN =============
-# HAPUS: from time import time  # JANGAN import fungsi, pakai module
-
-# =========================
-# IMPORT CHATBOT ENGINE
-# =========================
-from chatbot_engine import get_response
-
-# ========ALLOWED IPS==========
-ALLOWED_IPS = ["127.0.0.1"]
-
-def ip_protected():
-    return request.remote_addr in ALLOWED_IPS
 
 # ========== ANTI BRUTE FORCE LOGIN =============
 login_attempts = {}
@@ -131,20 +114,22 @@ def save_json(path, data):
 # =======================
 def log_admin_action(action, detail):
     try:
-        if not session.get("user"):
+        user = session.get("user")
+        if not user:
             print("LOG GAGAL: Tidak ada session")
             return
 
         admin_logs_collection.insert_one({
-            "username": session["user"]["username"],
-            "role": session["user"]["role"],
+            "username": user.get("username"),
+            "role": user.get("role"),
             "action": action,
             "detail": detail,
             "ip": request.remote_addr,
-            "timestamp": datetime.now(datetime.timezone.utc)
+            "timestamp": datetime.now(timezone.utc)
         })
     except Exception as e:
         print("LOG ERROR:", e)
+
 
 # =========================
 # ROUTE HALAMAN
@@ -168,7 +153,7 @@ def dashboard():
 def logout():
     log_admin_action("LOGOUT", "User logout")
     session.clear()
-    return redirect("/")
+    return jsonify({"success": True})
 
 # =========================
 # LOGIN API
@@ -209,7 +194,9 @@ def admin_login_api():
 # =========================
 # FAQ API
 # =========================
+
 @app.route("/faq", methods=["GET"])
+@login_required
 def get_faq():
     data = list(faq_collection.find({}))
     for f in data:
@@ -217,6 +204,7 @@ def get_faq():
     return jsonify(data)
 
 @app.route("/faq", methods=["POST"])
+@login_required
 def add_faq():
     if not session.get("user"):
         return jsonify({"error": "Unauthorized"}), 403
@@ -253,47 +241,53 @@ def add_faq():
 
     return jsonify({"success": True, "id": faq_id})
 
-@app.route("/faq/<id>", methods=["PUT"])
+@app.route("/admin/faq/<id>", methods=["PUT"])
+@admin_required
 def edit_faq(id):
-    if not session.get("user"):
-        return jsonify({"error": "Unauthorized"}), 403
+    data = request.get_json()
 
-    data = request.get_json(force=True)
-    
-    # 🔥 AMBIL DATA LAMA SEBELUM DIUPDATE
+    if not data:
+        return jsonify({"success": False, "message": "Data kosong"}), 400
+
+    # 🔥 Ambil data lama
     old_faq = faq_collection.find_one({"_id": ObjectId(id)})
-    
-    faq_collection.update_one(
+    if not old_faq:
+        return jsonify({"success": False, "message": "FAQ tidak ditemukan"}), 404
+
+    update_data = {}
+    changes = []
+
+    if "question" in data and data["question"] != old_faq.get("question"):
+        update_data["question"] = data["question"]
+        changes.append("pertanyaan diubah")
+
+    if "answer" in data and data["answer"] != old_faq.get("answer"):
+        update_data["answer"] = data["answer"]
+        changes.append("jawaban diupdate")
+
+    if "category_id" in data and data["category_id"] != old_faq.get("category_id"):
+        update_data["category_id"] = data["category_id"]
+        changes.append("kategori diubah")
+
+    if not update_data:
+        return jsonify({"success": False, "message": "Tidak ada perubahan"}), 200
+
+    result = faq_collection.update_one(
         {"_id": ObjectId(id)},
-        {"$set": {
-            "question": data.get("question"),
-            "answer": data.get("answer"),
-            "category_id": data.get("category_id")
-        }}
+        {"$set": update_data}
     )
 
-    # 🔥 LOG DETAIL: Bandingkan perubahan
-    detail = f"Edit FAQ ID {id}"
-    if old_faq:
-        changes = []
-        if old_faq.get("question") != data.get("question"):
-            changes.append(f"pertanyaan: '{old_faq.get('question')[:50]}...' → '{data.get('question')[:50]}...'")
-        if old_faq.get("answer") != data.get("answer"):
-            changes.append("jawaban diupdate")
-        if old_faq.get("category_id") != data.get("category_id"):
-            changes.append("kategori diubah")
-        
-        if changes:
-            detail = f"Edit FAQ: {', '.join(changes)}"
-    
+    # 🔐 LOG SELALU SEBELUM RETURN
+    detail = f"Edit FAQ ID {id}: {', '.join(changes)}"
     log_admin_action("EDIT_FAQ", detail)
 
     generate_intents_from_db()
     refresh_chatbot()
 
-    return jsonify({"success": True})
+    return jsonify({"success": True, "changes": changes})
 
 @app.route("/faq/<id>", methods=["DELETE"])
+@admin_required
 def delete_faq(id):
     if not session.get("user"):
         return jsonify({"error": "Unauthorized"}), 403
@@ -501,7 +495,7 @@ def add_admin_with_email():
         "activation_token": activation_token,
         "activation_expires_at": expires_at,
         "status": "pending",
-        "created_at": datetime.now(datetime.timezone.utc)
+        "created_at": datetime.now(timezone.utc)
     })
 
     # === BUILD ACTIVATION LINK ===
@@ -582,7 +576,7 @@ def activate_admin():
         if password != confirm:
             return "Password tidak cocok", 400
             
-        if len(password) < 6:
+        if len(password) < 8 or not re.search(r"[A-Z]", password) or not re.search(r"\d", password):
             return "Password minimal 6 karakter", 400
 
         # Update user
@@ -592,7 +586,7 @@ def activate_admin():
                 "$set": {
                     "password": generate_password_hash(password),
                     "status": "active",
-                    "updated_at": datetime.now(datetime.timezone.utc)
+                    "updated_at": datetime.now(timezone.utc)
                 },
                 "$unset": {
                     "activation_token": "",
@@ -785,6 +779,17 @@ def backup_logs():
         # Format data
         formatted_logs = []
         for log in logs:
+            timestamp = log.get("timestamp")
+            timestamp_str = ""
+            
+            if timestamp:
+                # Handle datetime object
+                if isinstance(timestamp, datetime):
+                    timestamp_str = timestamp.isoformat()
+                else:
+                    # Jika sudah string
+                    timestamp_str = str(timestamp)
+            
             formatted_log = {
                 "_id": str(log["_id"]),
                 "username": log.get("username", ""),
@@ -792,11 +797,11 @@ def backup_logs():
                 "action": log.get("action", ""),
                 "detail": log.get("detail", ""),
                 "ip": log.get("ip", ""),
-                "timestamp": log.get("timestamp", "").isoformat() if log.get("timestamp") else ""
+                "timestamp": timestamp_str
             }
             formatted_logs.append(formatted_log)
         
-        # Buat timestamp
+        # Buat timestamp untuk filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # Konversi ke JSON string
@@ -896,6 +901,7 @@ def list_users():
 # DELETE USER ADMIN
 # ===================================
 @app.route("/admin/users/<id>", methods=["DELETE"])
+@superadmin_required
 def delete_user(id):
     if not require_superadmin():
         return jsonify({"error": "Forbidden"}), 403

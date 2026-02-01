@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     logoutBtn?.addEventListener("click", async () => {
-        await fetch("/logout");
+        await fetch("/logout", { credentials: "include" });
         window.location.href = "/admin/login";
     });
 
