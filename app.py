@@ -337,26 +337,29 @@ def add_category():
     return jsonify({"success": True, "id": category_id})
 
 
-@app.route("/categories/<id>", methods=["PUT"])
+@app.route("/admin/category/edit/<id>", methods=["PUT"])
+@admin_required
 def edit_category(id):
-    if not session.get("user"):
-        return jsonify({"error": "Unauthorized"}), 403
+    data = request.json
 
-    data = request.get_json(force=True)
-    
-    # 🔥 AMBIL DATA LAMA
-    old_category = categories_collection.find_one({"_id": ObjectId(id)})
-    
-    categories_collection.update_one(
+    # 🔥 ambil data lama
+    old_category = categories_collection.find_one(
+        {"_id": ObjectId(id)}
+    )
+
+    result = categories_collection.update_one(
         {"_id": ObjectId(id)},
         {"$set": {"name": data.get("name")}}
     )
 
-    # 🔥 LOG PERUBAHAN
+    if result.matched_count == 0:
+        return jsonify({"success": False, "message": "Kategori tidak ditemukan"}), 404
+
+    # 🔥 LOG DETAIL
     detail = f"Edit kategori ID {id}"
     if old_category and old_category.get("name") != data.get("name"):
         detail = f"Edit kategori: '{old_category.get('name')}' → '{data.get('name')}'"
-    
+
     log_admin_action("EDIT_CATEGORY", detail)
 
     return jsonify({"success": True})
