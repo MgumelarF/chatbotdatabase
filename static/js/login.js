@@ -1,13 +1,19 @@
 document.getElementById("togglePassword").addEventListener("click", function() {
     const passwordInput = document.getElementById("password");
-    const toggleIcon = this;
+    const toggleIcon = this.querySelector('i');
     
     if (passwordInput.type === "password") {
         passwordInput.type = "text";
-        toggleIcon.textContent = "🙈"; // Ikon mata tertutup
+        toggleIcon.className = "fas fa-eye-slash";
     } else {
         passwordInput.type = "password";
-        toggleIcon.textContent = "👁️"; // Ikon mata terbuka
+        toggleIcon.className = "fas fa-eye"; 
+    }
+});
+document.getElementById("password").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") {
+        // Trigger tombol login
+        document.getElementById("loginBtn").click();
     }
 });
 
