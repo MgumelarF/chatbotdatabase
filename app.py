@@ -241,50 +241,46 @@ def add_faq():
 
     return jsonify({"success": True, "id": faq_id})
 
-@app.route("/admin/faq/<id>", methods=["PUT"])
+@app.route("/faq/<id>", methods=["PUT"])
 @admin_required
 def edit_faq(id):
-    data = request.get_json()
+    data = request.get_json(force=True)
 
-    if not data:
-        return jsonify({"success": False, "message": "Data kosong"}), 400
-
-    # 🔥 Ambil data lama
     old_faq = faq_collection.find_one({"_id": ObjectId(id)})
-    if not old_faq:
-        return jsonify({"success": False, "message": "FAQ tidak ditemukan"}), 404
-
-    update_data = {}
-    changes = []
-
-    if "question" in data and data["question"] != old_faq.get("question"):
-        update_data["question"] = data["question"]
-        changes.append("pertanyaan diubah")
-
-    if "answer" in data and data["answer"] != old_faq.get("answer"):
-        update_data["answer"] = data["answer"]
-        changes.append("jawaban diupdate")
-
-    if "category_id" in data and data["category_id"] != old_faq.get("category_id"):
-        update_data["category_id"] = data["category_id"]
-        changes.append("kategori diubah")
-
-    if not update_data:
-        return jsonify({"success": False, "message": "Tidak ada perubahan"}), 200
 
     result = faq_collection.update_one(
         {"_id": ObjectId(id)},
-        {"$set": update_data}
+        {"$set": {
+            "question": data.get("question"),
+            "answer": data.get("answer"),
+            "category_id": data.get("category_id")
+        }}
     )
 
-    # 🔐 LOG SELALU SEBELUM RETURN
-    detail = f"Edit FAQ ID {id}: {', '.join(changes)}"
+    if result.matched_count == 0:
+        return jsonify({"success": False, "message": "FAQ tidak ditemukan"}), 404
+
+    # 🔥 LOG DETAIL
+    detail = f"Edit FAQ ID {id}"
+    if old_faq:
+        changes = []
+        if old_faq.get("question") != data.get("question"):
+            changes.append("pertanyaan diubah")
+        if old_faq.get("answer") != data.get("answer"):
+            changes.append("jawaban diubah")
+        if old_faq.get("category_id") != data.get("category_id"):
+            changes.append("kategori diubah")
+
+        if changes:
+            detail = f"Edit FAQ: {', '.join(changes)}"
+
     log_admin_action("EDIT_FAQ", detail)
 
     generate_intents_from_db()
     refresh_chatbot()
 
-    return jsonify({"success": True, "changes": changes})
+    return jsonify({"success": True})
+
 
 @app.route("/faq/<id>", methods=["DELETE"])
 @admin_required
@@ -337,12 +333,11 @@ def add_category():
     return jsonify({"success": True, "id": category_id})
 
 
-@app.route("/admin/category/edit/<id>", methods=["PUT"])
+@app.route("/categories/<id>", methods=["PUT"])
 @admin_required
 def edit_category(id):
-    data = request.json
+    data = request.get_json(force=True)
 
-    # 🔥 ambil data lama
     old_category = categories_collection.find_one(
         {"_id": ObjectId(id)}
     )
@@ -355,7 +350,6 @@ def edit_category(id):
     if result.matched_count == 0:
         return jsonify({"success": False, "message": "Kategori tidak ditemukan"}), 404
 
-    # 🔥 LOG DETAIL
     detail = f"Edit kategori ID {id}"
     if old_category and old_category.get("name") != data.get("name"):
         detail = f"Edit kategori: '{old_category.get('name')}' → '{data.get('name')}'"
