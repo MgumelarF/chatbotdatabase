@@ -16,6 +16,7 @@ from flask import (
 )
 import secrets
 import json
+import os
 import re
 import time  # PAKAI import module, bukan fungsi
 
@@ -32,7 +33,7 @@ except ImportError as e:
     db = None
     
 from werkzeug.security import generate_password_hash, check_password_hash
-from auth import login_required, superadmin_required, admin_required
+from auth import login_required, superadmin_required
 from datetime import timedelta
 from flask_cors import CORS
 
@@ -42,8 +43,9 @@ from db import faq_collection, categories_collection
 from services.intent_service import generate_intents_from_db
 from utils.reload_model import refresh_chatbot
 
-from datetime import datetime, timezone
+from datetime import datetime
 from bson import ObjectId
+from bson.objectid import ObjectId
 from db import users_collection, admin_logs_collection
 
 # ========== ANTI BRUTE FORCE LOGIN =============
@@ -114,22 +116,20 @@ def save_json(path, data):
 # =======================
 def log_admin_action(action, detail):
     try:
-        user = session.get("user")
-        if not user:
+        if not session.get("user"):
             print("LOG GAGAL: Tidak ada session")
             return
 
         admin_logs_collection.insert_one({
-            "username": user.get("username"),
-            "role": user.get("role"),
+            "username": session["user"]["username"],
+            "role": session["user"]["role"],
             "action": action,
             "detail": detail,
             "ip": request.remote_addr,
-            "timestamp": datetime.now(timezone.utc)
+            "timestamp": datetime.now(datetime.timezone.utc)
         })
     except Exception as e:
         print("LOG ERROR:", e)
-
 
 # =========================
 # ROUTE HALAMAN
@@ -153,7 +153,7 @@ def dashboard():
 def logout():
     log_admin_action("LOGOUT", "User logout")
     session.clear()
-    return jsonify({"success": True})
+    return redirect("/")
 
 # =========================
 # LOGIN API
@@ -194,9 +194,7 @@ def admin_login_api():
 # =========================
 # FAQ API
 # =========================
-
 @app.route("/faq", methods=["GET"])
-@login_required
 def get_faq():
     data = list(faq_collection.find({}))
     for f in data:
@@ -204,7 +202,6 @@ def get_faq():
     return jsonify(data)
 
 @app.route("/faq", methods=["POST"])
-@login_required
 def add_faq():
     if not session.get("user"):
         return jsonify({"error": "Unauthorized"}), 403
@@ -242,13 +239,16 @@ def add_faq():
     return jsonify({"success": True, "id": faq_id})
 
 @app.route("/faq/<id>", methods=["PUT"])
-@admin_required
 def edit_faq(id):
+    if not session.get("user"):
+        return jsonify({"error": "Unauthorized"}), 403
+
     data = request.get_json(force=True)
-
+    
+    # 🔥 AMBIL DATA LAMA SEBELUM DIUPDATE
     old_faq = faq_collection.find_one({"_id": ObjectId(id)})
-
-    result = faq_collection.update_one(
+    
+    faq_collection.update_one(
         {"_id": ObjectId(id)},
         {"$set": {
             "question": data.get("question"),
@@ -257,23 +257,20 @@ def edit_faq(id):
         }}
     )
 
-    if result.matched_count == 0:
-        return jsonify({"success": False, "message": "FAQ tidak ditemukan"}), 404
-
-    # 🔥 LOG DETAIL
+    # 🔥 LOG DETAIL: Bandingkan perubahan
     detail = f"Edit FAQ ID {id}"
     if old_faq:
         changes = []
         if old_faq.get("question") != data.get("question"):
-            changes.append("pertanyaan diubah")
+            changes.append(f"pertanyaan: '{old_faq.get('question')[:50]}...' → '{data.get('question')[:50]}...'")
         if old_faq.get("answer") != data.get("answer"):
-            changes.append("jawaban diubah")
+            changes.append("jawaban diupdate")
         if old_faq.get("category_id") != data.get("category_id"):
             changes.append("kategori diubah")
-
+        
         if changes:
             detail = f"Edit FAQ: {', '.join(changes)}"
-
+    
     log_admin_action("EDIT_FAQ", detail)
 
     generate_intents_from_db()
@@ -281,9 +278,7 @@ def edit_faq(id):
 
     return jsonify({"success": True})
 
-
 @app.route("/faq/<id>", methods=["DELETE"])
-@admin_required
 def delete_faq(id):
     if not session.get("user"):
         return jsonify({"error": "Unauthorized"}), 403
@@ -334,26 +329,25 @@ def add_category():
 
 
 @app.route("/categories/<id>", methods=["PUT"])
-@admin_required
 def edit_category(id):
+    if not session.get("user"):
+        return jsonify({"error": "Unauthorized"}), 403
+
     data = request.get_json(force=True)
-
-    old_category = categories_collection.find_one(
-        {"_id": ObjectId(id)}
-    )
-
-    result = categories_collection.update_one(
+    
+    # 🔥 AMBIL DATA LAMA
+    old_category = categories_collection.find_one({"_id": ObjectId(id)})
+    
+    categories_collection.update_one(
         {"_id": ObjectId(id)},
         {"$set": {"name": data.get("name")}}
     )
 
-    if result.matched_count == 0:
-        return jsonify({"success": False, "message": "Kategori tidak ditemukan"}), 404
-
+    # 🔥 LOG PERUBAHAN
     detail = f"Edit kategori ID {id}"
     if old_category and old_category.get("name") != data.get("name"):
         detail = f"Edit kategori: '{old_category.get('name')}' → '{data.get('name')}'"
-
+    
     log_admin_action("EDIT_CATEGORY", detail)
 
     return jsonify({"success": True})
@@ -492,7 +486,7 @@ def add_admin_with_email():
         "activation_token": activation_token,
         "activation_expires_at": expires_at,
         "status": "pending",
-        "created_at": datetime.now(timezone.utc)
+        "created_at": datetime.now(datetime.timezone.utc)
     })
 
     # === BUILD ACTIVATION LINK ===
@@ -573,7 +567,7 @@ def activate_admin():
         if password != confirm:
             return "Password tidak cocok", 400
             
-        if len(password) < 8 or not re.search(r"[A-Z]", password) or not re.search(r"\d", password):
+        if len(password) < 6:
             return "Password minimal 6 karakter", 400
 
         # Update user
@@ -583,7 +577,7 @@ def activate_admin():
                 "$set": {
                     "password": generate_password_hash(password),
                     "status": "active",
-                    "updated_at": datetime.now(timezone.utc)
+                    "updated_at": datetime.now(datetime.timezone.utc)
                 },
                 "$unset": {
                     "activation_token": "",
@@ -776,17 +770,6 @@ def backup_logs():
         # Format data
         formatted_logs = []
         for log in logs:
-            timestamp = log.get("timestamp")
-            timestamp_str = ""
-            
-            if timestamp:
-                # Handle datetime object
-                if isinstance(timestamp, datetime):
-                    timestamp_str = timestamp.isoformat()
-                else:
-                    # Jika sudah string
-                    timestamp_str = str(timestamp)
-            
             formatted_log = {
                 "_id": str(log["_id"]),
                 "username": log.get("username", ""),
@@ -794,11 +777,11 @@ def backup_logs():
                 "action": log.get("action", ""),
                 "detail": log.get("detail", ""),
                 "ip": log.get("ip", ""),
-                "timestamp": timestamp_str
+                "timestamp": log.get("timestamp", "").isoformat() if log.get("timestamp") else ""
             }
             formatted_logs.append(formatted_log)
         
-        # Buat timestamp untuk filename
+        # Buat timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # Konversi ke JSON string
@@ -898,7 +881,6 @@ def list_users():
 # DELETE USER ADMIN
 # ===================================
 @app.route("/admin/users/<id>", methods=["DELETE"])
-@superadmin_required
 def delete_user(id):
     if not require_superadmin():
         return jsonify({"error": "Forbidden"}), 403

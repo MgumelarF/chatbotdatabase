@@ -18,16 +18,3 @@ def superadmin_required(f):
             return jsonify({"error": "Forbidden"}), 403
         return f(*args, **kwargs)
     return wrapper
-
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        user = session.get("user")
-        if not user:
-            return jsonify({"error": "Unauthorized"}), 403
-
-        if user.get("role") not in ["admin", "superadmin"]:
-            return jsonify({"error": "Forbidden"}), 403
-
-        return f(*args, **kwargs)
-    return decorated
