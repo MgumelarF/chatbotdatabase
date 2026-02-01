@@ -1,24 +1,3 @@
-// ===== TOGGLE PASSWORD VISIBILITY =====
-document.getElementById("togglePassword").addEventListener("click", function() {
-    const passwordInput = document.getElementById("password");
-    const toggleIcon = this;
-    
-    if (passwordInput.type === "password") {
-        passwordInput.type = "text";
-        toggleIcon.textContent = "🙈"; // Icon mata tertutup
-    } else {
-        passwordInput.type = "password";
-        toggleIcon.textContent = "👁️"; // Icon mata terbuka
-    }
-});
-
-document.getElementById("password").addEventListener("keydown", function(e) {
-    if (e.key === "Enter") {
-        // Trigger tombol login
-        document.getElementById("loginBtn").click();
-    }
-});
-
 document.getElementById("loginBtn").addEventListener("click", function () {
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
