@@ -32,7 +32,7 @@ except ImportError as e:
     db = None
     
 from werkzeug.security import generate_password_hash, check_password_hash
-from auth import login_required, superadmin_required
+from auth import login_required, superadmin_required, admin_required
 from datetime import timedelta
 from flask_cors import CORS
 
